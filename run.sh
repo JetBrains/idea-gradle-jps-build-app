@@ -58,17 +58,21 @@ function build() {
     IDEA_PLUGINS="${IDEA}/Contents/plugins"
     IDEA_LIB="${IDEA}/Contents/lib"
 
-    IDEA_CP="${JDK}/lib/tools.jar"
+    JPS_CP="${JDK}/lib/tools.jar"
+
+    # idea
     for jar in platform-api.jar
     do
-        IDEA_CP="${IDEA_CP}:${IDEA_LIB}/${jar}"
+        JPS_CP="${IDEA_CP}:${IDEA_LIB}/${jar}"
     done
 
-    JPS_CP="${JDK}/lib/tools.jar:${IDEA_CP}"
+    # jps
     for jar in ${JPS}/*
     do
         JPS_CP="${JPS_CP}:$jar"
     done
+
+    # kotlin
     for jar in jps/kotlin-jps-plugin.jar kotlin-stdlib.jar kotlin-reflect.jar kotlin-plugin.jar
     do
         JPS_CP="${JPS_CP}:${KOTLIN_PLUGIN}/lib/${jar}"
