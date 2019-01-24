@@ -1,0 +1,32 @@
+<idea-plugin>
+  <id>com.your.company.unique.plugin.id</id>
+  <name>Import Gradle Project Command Line</name>
+  <version>1.0</version>
+  <vendor email="Sergey.Rostov@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
+
+  <description>Imports gradle project and save it. Imports gradle project and save it</description>
+
+  <change-notes>Imports gradle project and save it. Imports gradle project and save it</change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="173.0"/>
+
+  <depends>org.jetbrains.plugins.gradle</depends>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <appStarter implementation="org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportCmdMain"/>
+
+    <externalSystemTaskNotificationListener implementation="org.jetbrains.kotlin.tools.gradleimportcmd.TNListener"/>
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+  </actions>
+
+</idea-plugin>
