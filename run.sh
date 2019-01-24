@@ -4,6 +4,7 @@ set -x
 set -e
 
 IDEA="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/183.5153.38/IntelliJ IDEA CE.app"
+KOTLIN_PLUGIN="/Users/jetbrains/kotlin/dist/artifacts/ideaPlugin/Kotlin"
 
 #https://www.jetbrains.com/intellij-repository/releases/com/jetbrains/intellij/idea/jps-standalone/2018.3.3/jps-standalone-2018.3.3.zip
 JPS="/Users/jetbrains/Downloads/jps-standalone-2018.3.3"
@@ -55,12 +56,29 @@ function importIdeaProject() {
 
 function build() {
     IDEA_PLUGINS="${IDEA}/Contents/plugins"
+    IDEA_LIB="${IDEA}/Contents/lib"
+
+    IDEA_CP="${JDK}/lib/tools.jar"
+    for jar in platform-api.jar
+    do
+        IDEA_CP="${IDEA_CP}:${IDEA_LIB}/${jar}"
+    done
+
+    JPS_CP="${JDK}/lib/tools.jar:${IDEA_CP}"
+    for jar in ${JPS}/*
+    do
+        JPS_CP="${JPS_CP}:$jar"
+    done
+    for jar in jps/kotlin-jps-plugin.jar kotlin-stdlib.jar kotlin-reflect.jar kotlin-plugin.jar
+    do
+        JPS_CP="${JPS_CP}:${KOTLIN_PLUGIN}/lib/${jar}"
+    done
 
     ${JAVA} \
         -Xmx3G \
         -Xms256m \
-        -Djps.kotlin.home="${IDEA_PLUGINS}/Kotlin/kotlinc" \
-        -classpath "${JDK}/lib/tools.jar:${JPS}/*" \
+        -Djps.kotlin.home="${KOTLIN_PLUGIN}/kotlinc" \
+        -classpath "${JPS_CP}" \
         org.jetbrains.jps.build.Standalone \
         "${PROJECT}" \
         -i \
@@ -69,6 +87,6 @@ function build() {
         --config "${LOCAL}/config"
 }
 
-checkout
-importIdeaProject
+#checkout
+#importIdeaProject
 build

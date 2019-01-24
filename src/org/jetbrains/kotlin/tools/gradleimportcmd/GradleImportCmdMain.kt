@@ -122,21 +122,15 @@ class GradleImportCmdMain : ApplicationStarterBase(cmd, 2) {
                 true
         )
 
+        println("Saving...")
+
         project!!.save()
         ProjectManagerEx.getInstanceEx().openProject(project!!)
         FileDocumentManager.getInstance().saveAllDocuments()
         ApplicationManager.getApplication().saveSettings(true)
         ApplicationManager.getApplication().saveAll()
 
-//        ApplicationManager.getApplication().runWriteAction { VirtualFileManager.getInstance().refreshWithoutFileWatcher(false) }
-//
-//        PatchProjectUtil.patchProject(project)
-//
-//        logMessageLn(1, InspectionsBundle.message("inspection.done"))
-//        logMessage(1, InspectionsBundle.message("inspection.application.initializing.project"))
-//
-//        FileDocumentManager.getInstance().saveAllDocuments()
-//        ApplicationManager.getApplication().saveSettings()
+        println("Done. Shooting down.")
     }
 
     lateinit var mySdk: Sdk
