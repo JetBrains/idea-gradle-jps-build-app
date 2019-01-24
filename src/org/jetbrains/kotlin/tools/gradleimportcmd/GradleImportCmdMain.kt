@@ -1,38 +1,38 @@
 package org.jetbrains.kotlin.tools.gradleimportcmd
 
-import com.intellij.build.SyncViewManager
 import com.intellij.codeInspection.InspectionsBundle
-import com.intellij.ide.actions.ImportModuleAction
 import com.intellij.ide.impl.PatchProjectUtil
 import com.intellij.ide.impl.ProjectUtil
-import com.intellij.ide.util.newProjectWizard.AddModuleWizard
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationStarterBase
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
+import com.intellij.openapi.externalSystem.model.DataNode
+import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
+import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
-import com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManagerImpl
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
+import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.projectRoots.impl.JavaAwareProjectJdkTableImpl
 import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFileManager
-import org.jetbrains.plugins.gradle.service.project.wizard.GradleProjectImportBuilder
-import org.jetbrains.plugins.gradle.service.project.wizard.GradleProjectImportProvider
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.io.File
 
 
 class GradleImportCmdMain : ApplicationStarterBase(
         "importAndSave",
-        1
+        2
 ) {
     private val LOG = Logger.getInstance("#org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportCmdMain")
 
@@ -41,7 +41,7 @@ class GradleImportCmdMain : ApplicationStarterBase(
     override fun getUsageMessage(): String = "Usage: idea importAndSave <path-to-gradle-project>"
 
     override fun processCommand(args: Array<out String>?, currentDirectory: String?) {
-        println("started!")
+        println("Initializing")
 
         val application = ApplicationManagerEx.getApplicationEx()
 
@@ -63,13 +63,15 @@ class GradleImportCmdMain : ApplicationStarterBase(
 
     val myVerboseLevel = 0
     lateinit var projectPath: String
+    lateinit var jdkPath: String
 
     override fun premain(args: Array<out String>) {
-        if (args.size != 2) {
+        if (args.size != 3) {
             printHelp()
         }
 
         projectPath = args[1]
+        jdkPath = args[2]
         if (!File(projectPath).isDirectory) {
             println("$projectPath is not directory")
             printHelp()
@@ -108,20 +110,33 @@ class GradleImportCmdMain : ApplicationStarterBase(
         ApplicationManager.getApplication().saveSettings()
     }
 
+    lateinit var mySdk: Sdk
+
     private fun importGradleProject() {
-        ProjectRootManager.getInstance(project!!).projectSdk = ProjectJdkTable.getInstance().findJdk("1.8")
+        val table = JavaAwareProjectJdkTableImpl.getInstanceEx()
 
-        val kotlinDslGradleFile = projectPath + '/'.toString() + GradleConstants.KOTLIN_DSL_SCRIPT_NAME
-        val projectDataManager = ServiceManager.getService(ProjectDataManager::class.java)
-        val gradleProjectImportBuilder = GradleProjectImportBuilder(projectDataManager)
-        val gradleProjectImportProvider = GradleProjectImportProvider(gradleProjectImportBuilder)
-        val wizard = AddModuleWizard(project, File(kotlinDslGradleFile).path, gradleProjectImportProvider)
-        ImportModuleAction.createFromWizard(project, wizard)
-        ExternalProjectsManagerImpl.getInstance(project!!).setStoreExternally(false)
+        WriteAction.runAndWait<RuntimeException> {
+            mySdk = (table.defaultSdkType as JavaSdk).createJdk("1.8", jdkPath)
+            ProjectJdkTable.getInstance().addJdk(mySdk)
+            ProjectRootManager.getInstance(project!!).projectSdk = mySdk
+        }
 
-        val importSpec = ImportSpecBuilder(project!!, GradleConstants.SYSTEM_ID)
-                .build()
-        ExternalSystemUtil.refreshProject(projectPath, importSpec)
+        ExternalSystemUtil.refreshProject(
+                project!!,
+                GradleConstants.SYSTEM_ID,
+                projectPath,
+                object : ExternalProjectRefreshCallback {
+                    override fun onSuccess(externalProject: DataNode<ProjectData>?) {
+                        if (externalProject != null) {
+                            ServiceManager.getService(ProjectDataManager::class.java)
+                                    .importData(externalProject, project!!, true)
+                        }
+                    }
+                },
+                false,
+                ProgressExecutionMode.IN_BACKGROUND_ASYNC,
+                true
+        )
 
         project!!.save()
         ProjectManagerEx.getInstanceEx().openProject(project!!)
