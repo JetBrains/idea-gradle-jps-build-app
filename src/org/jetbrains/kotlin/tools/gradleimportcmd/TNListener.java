@@ -38,7 +38,7 @@ public class TNListener implements ExternalSystemTaskNotificationListener {
 
     @Override
     public void onSuccess(@NotNull ExternalSystemTaskId id) {
-
+        System.out.println("Success " + id);
     }
 
     @Override
@@ -53,6 +53,6 @@ public class TNListener implements ExternalSystemTaskNotificationListener {
 
     @Override
     public void onCancel(@NotNull ExternalSystemTaskId id) {
-
+        System.out.println("Cancelled " + id);
     }
 }

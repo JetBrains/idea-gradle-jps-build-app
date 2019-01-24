@@ -1,7 +1,5 @@
 package org.jetbrains.kotlin.tools.gradleimportcmd
 
-import com.intellij.codeInspection.InspectionsBundle
-import com.intellij.ide.impl.PatchProjectUtil
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationStarterBase
@@ -9,7 +7,6 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
@@ -25,23 +22,22 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.projectRoots.impl.JavaAwareProjectJdkTableImpl
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.io.File
 
+const val cmd = "importAndSave"
 
-class GradleImportCmdMain : ApplicationStarterBase(
-        "importAndSave",
-        2
-) {
+class GradleImportCmdMain : ApplicationStarterBase(cmd, 2) {
     private val LOG = Logger.getInstance("#org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportCmdMain")
 
     override fun isHeadless(): Boolean = true
 
-    override fun getUsageMessage(): String = "Usage: idea importAndSave <path-to-gradle-project>"
+    override fun getUsageMessage(): String = "Usage: idea $cmd <path-to-gradle-project> <path-to-jdk>"
 
     override fun processCommand(args: Array<out String>?, currentDirectory: String?) {
         println("Initializing")
+
+        System.setProperty("idea.skip.indices.initialization", "true")
 
         val application = ApplicationManagerEx.getApplicationEx()
 
@@ -61,7 +57,6 @@ class GradleImportCmdMain : ApplicationStarterBase(
         }
     }
 
-    val myVerboseLevel = 0
     lateinit var projectPath: String
     lateinit var jdkPath: String
 
@@ -84,14 +79,11 @@ class GradleImportCmdMain : ApplicationStarterBase(
         projectPath = projectPath.replace(File.separatorChar, '/')
         val vfsProject = LocalFileSystem.getInstance().findFileByPath(projectPath)
         if (vfsProject == null) {
-            logError(InspectionsBundle.message("inspection.application.file.cannot.be.found", projectPath))
+            logError("Cannot find directory $projectPath")
             printHelp()
         }
 
-        logMessage(1, InspectionsBundle.message("inspection.application.opening.project"))
-
         project = ProjectUtil.openProject(projectPath, null, false)
-        importGradleProject()
 
         if (project == null) {
             logError("Unable to open project")
@@ -99,22 +91,9 @@ class GradleImportCmdMain : ApplicationStarterBase(
             return
         }
 
-        ApplicationManager.getApplication().runWriteAction { VirtualFileManager.getInstance().refreshWithoutFileWatcher(false) }
+        println("Project loaded, refreshing from Gradle...")
 
-        PatchProjectUtil.patchProject(project)
-
-        logMessageLn(1, InspectionsBundle.message("inspection.done"))
-        logMessage(1, InspectionsBundle.message("inspection.application.initializing.project"))
-
-        FileDocumentManager.getInstance().saveAllDocuments()
-        ApplicationManager.getApplication().saveSettings()
-    }
-
-    lateinit var mySdk: Sdk
-
-    private fun importGradleProject() {
         val table = JavaAwareProjectJdkTableImpl.getInstanceEx()
-
         WriteAction.runAndWait<RuntimeException> {
             mySdk = (table.defaultSdkType as JavaSdk).createJdk("1.8", jdkPath)
             ProjectJdkTable.getInstance().addJdk(mySdk)
@@ -127,6 +106,11 @@ class GradleImportCmdMain : ApplicationStarterBase(
                 projectPath,
                 object : ExternalProjectRefreshCallback {
                     override fun onSuccess(externalProject: DataNode<ProjectData>?) {
+                        if (externalProject == null) {
+                            println("Cannot get external project. See IDEA logs")
+                            gracefulExit()
+                        }
+
                         if (externalProject != null) {
                             ServiceManager.getService(ProjectDataManager::class.java)
                                     .importData(externalProject, project!!, true)
@@ -134,17 +118,28 @@ class GradleImportCmdMain : ApplicationStarterBase(
                     }
                 },
                 false,
-                ProgressExecutionMode.IN_BACKGROUND_ASYNC,
+                ProgressExecutionMode.MODAL_SYNC,
                 true
         )
 
         project!!.save()
         ProjectManagerEx.getInstanceEx().openProject(project!!)
-
         FileDocumentManager.getInstance().saveAllDocuments()
         ApplicationManager.getApplication().saveSettings(true)
         ApplicationManager.getApplication().saveAll()
+
+//        ApplicationManager.getApplication().runWriteAction { VirtualFileManager.getInstance().refreshWithoutFileWatcher(false) }
+//
+//        PatchProjectUtil.patchProject(project)
+//
+//        logMessageLn(1, InspectionsBundle.message("inspection.done"))
+//        logMessage(1, InspectionsBundle.message("inspection.application.initializing.project"))
+//
+//        FileDocumentManager.getInstance().saveAllDocuments()
+//        ApplicationManager.getApplication().saveSettings()
     }
+
+    lateinit var mySdk: Sdk
 
     private fun closeProject() {
         if (project?.isDisposed == false) {
@@ -154,28 +149,12 @@ class GradleImportCmdMain : ApplicationStarterBase(
     }
 
     private fun gracefulExit() {
-        if (false) {
-            System.exit(1)
-        } else {
             closeProject()
             throw RuntimeException("Failed to proceed")
-        }
-    }
-
-    private fun logMessage(minVerboseLevel: Int, message: String) {
-        if (myVerboseLevel >= minVerboseLevel) {
-            println(message)
-        }
     }
 
     private fun logError(message: String) {
         System.err.println(message)
-    }
-
-    private fun logMessageLn(minVerboseLevel: Int, message: String) {
-        if (myVerboseLevel >= minVerboseLevel) {
-            println(message)
-        }
     }
 
     private fun printHelp() {
