@@ -12,7 +12,10 @@ import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil.toCanonicalPath
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil.refreshProject
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -23,6 +26,7 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.projectRoots.impl.JavaAwareProjectJdkTableImpl
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.LocalFileSystem
+import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.io.File
 
@@ -101,20 +105,25 @@ class GradleImportCmdMain : ApplicationStarterBase(cmd, 2) {
             ProjectRootManager.getInstance(project!!).projectSdk = mySdk
         }
 
-        ExternalSystemUtil.refreshProject(
+        val projectSettings = GradleProjectSettings()
+        projectSettings.externalProjectPath = projectPath
+        projectSettings.withQualifiedModuleNames()
+
+        val systemSettings = ExternalSystemApiUtil.getSettings(project!!, GradleConstants.SYSTEM_ID)
+        systemSettings.linkProject(projectSettings)
+
+        refreshProject(
                 project!!,
                 GradleConstants.SYSTEM_ID,
                 projectPath,
                 object : ExternalProjectRefreshCallback {
                     override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-                        if (externalProject == null) {
-                            println("Cannot get external project. See IDEA logs")
-                            gracefulExit()
-                        }
-
                         if (externalProject != null) {
                             ServiceManager.getService(ProjectDataManager::class.java)
                                     .importData(externalProject, project!!, true)
+                        } else {
+                            println("Cannot get external project. See IDEA logs")
+                            gracefulExit()
                         }
                     }
                 },
@@ -152,8 +161,8 @@ class GradleImportCmdMain : ApplicationStarterBase(cmd, 2) {
     }
 
     private fun gracefulExit() {
-            closeProject()
-            throw RuntimeException("Failed to proceed")
+        closeProject()
+        throw RuntimeException("Failed to proceed")
     }
 
     private fun logError(message: String) {

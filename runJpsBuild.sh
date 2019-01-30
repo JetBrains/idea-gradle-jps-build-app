@@ -23,7 +23,7 @@ BRANCH="origin/rr/snrostov/jpsbuild"
 PLUGIN="${SANDBOX}/plugins/gradle-import-and-save"
 JAVA="${JDK}/bin/java"
 
-DEBUG=false
+DEBUG=true
 
 function checkout() {
     cd ${PROJECT}
@@ -104,6 +104,6 @@ function build() {
     # --modules "idea_main,idea_test"
 }
 
-checkout
-importIdeaProject
-#build
+#checkout
+#importIdeaProject
+build
