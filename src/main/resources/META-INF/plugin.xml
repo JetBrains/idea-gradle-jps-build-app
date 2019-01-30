@@ -1,12 +1,14 @@
 <idea-plugin>
-  <id>com.your.company.unique.plugin.id</id>
+  <id>org.jetbrains.gradle-import-and-save</id>
   <name>Import Gradle Project Command Line</name>
   <version>1.0</version>
   <vendor email="Sergey.Rostov@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
 
-  <description>Imports gradle project and save it. Imports gradle project and save it</description>
+  <!--suppress PluginXmlValidity -->
+  <description>Imports gradle project and save it</description>
 
-  <change-notes>Imports gradle project and save it. Imports gradle project and save it</change-notes>
+  <!--suppress PluginXmlValidity -->
+  <change-notes>Imports gradle project and save it</change-notes>
 
   <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
   <idea-version since-build="173.0"/>

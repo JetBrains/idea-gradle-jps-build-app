@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="idea-gradle-jps-build-app.main" target="1.8" />
+      <module name="idea-gradle-jps-build-app.test" target="1.8" />
+      <module name="org.jetbrains.idea-gradle-jps-build-app.main" target="1.8" />
+      <module name="org.jetbrains.idea-gradle-jps-build-app.test" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
