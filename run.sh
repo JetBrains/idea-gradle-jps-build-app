@@ -42,15 +42,13 @@ function gitbare() {
     if [[ -d "${GIT_BARE}" ]]; then
         cd ${GIT_BARE}
         git fetch
-        git reset --hard "origin/${REV}"
-        git clean -qfdx
     else
         git clone --bare --depth=1 -b ${REV} git@github.com:JetBrains/kotlin.git ${GIT_BARE}
     fi
 }
 
 function checkout() {
-    if [[ ! "$1" ]]; then
+    if [[ -d "$1" ]]; then
         cd ${1}
         git fetch
         git reset --hard "origin/${REV}"
@@ -145,7 +143,7 @@ cd ${GRADLE_PROJECT}
 
 echo "Updating ${JPS_PROJECT}..."
 checkout ${JPS_PROJECT}
-echo "jpsBuild=true" >> gradle.properties
+echo "jpsBuild=true" >> ${JPS_PROJECT}/gradle.properties
 
 jpsImportIdeaProject
 jpsBuild

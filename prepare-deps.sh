@@ -7,7 +7,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 cd ${DIR}
-./gradlew prepareSandbox
+./gradlew prepareSandbox --parallel --stacktrace
 
 cd ${DIR}/utils
 curl -# -L "https://github.com/snrostov/dist-compare/releases/download/0.3/dist-compare-1.0-SNAPSHOT.zip" \
