@@ -4,7 +4,6 @@ set -x
 set -e
 
 REV="master" # note: changing this requires bare clone config update
-SANDBOX="${HOME}/tasks/kwjps/sandbox"
 
 ###################
 
@@ -12,6 +11,7 @@ JDK="$JDK_18"
 
 # this script home dir
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SANDBOX="${DIR}/tasks/kwjps/sandbox"
 
 if [[ ! -d "${DIR}/utils" ]]; then
     ${DIR}/prepare-deps.sh
@@ -22,7 +22,7 @@ JPS_STANDALONE="${DIR}/utils/jps-standalone"
 DIST_COMPARE_BIN="${DIR}/utils/dist-compare/bin/dist-compare"
 
 GRADLE_CACHE="${HOME}/.gradle/caches/modules-2/files-2.1"
-IDEA="${GRADLE_CACHE}/com.jetbrains.intellij.idea/ideaIC/2018.3/70e72bdc97f330ebe4f06ad307d8928ea903cf87/ideaIC-2018.3"
+IDEA="${GRADLE_CACHE}/com.jetbrains.intellij.idea/ideaIC/2019.1/b0bd766fbab61007aefe7922895a1726afe11b14/ideaIC-2019.1"
 
 mkdir -p "$SANDBOX"
 GIT_BARE="${SANDBOX}/gitbare"
@@ -39,12 +39,14 @@ DEBUG=false
 #####################
 
 function gitbare() {
+    echo "##teamcity[blockOpened name='git-clone-${GIT_BARE}' description='Git clone ${GIT_BARE}']"
     if [[ -d "${GIT_BARE}" ]]; then
         cd ${GIT_BARE}
         git fetch
     else
-        git clone --bare --depth=1 -b ${REV} git@github.com:JetBrains/kotlin.git ${GIT_BARE}
+        git clone --bare --depth=1 -b ${REV} https://github.com/JetBrains/kotlin.git ${GIT_BARE}
     fi
+    echo "##teamcity[blockClosed name='git-clone-${GIT_BARE}']"
 }
 
 function checkout() {
@@ -59,6 +61,9 @@ function checkout() {
 }
 
 function jpsImportIdeaProject() {
+    pushd ${SANDBOX}/jps
+    echo "##teamcity[blockOpened name='import-jps-project' description='Import jps project']"
+
     IDEA_LIB="${IDEA}/lib"
     IDEA_CP="${JDK}/lib/tools.jar"
     for jar in log4j.jar jdom.jar trove4j.jar openapi.jar util.jar extensions.jar bootstrap.jar idea_rt.jar idea.jar
@@ -87,9 +92,15 @@ function jpsImportIdeaProject() {
     ARGS+=("${JDK}")
 
     ${JAVA} ${ARGS[@]}
+
+    echo "##teamcity[blockClosed name='import-jps-project']"
+    popd
 }
 
 function jpsBuild() {
+    pushd ${SANDBOX}/jps
+    echo "##teamcity[blockOpened name='jps-build' description='Run jps build']"
+
     IDEA_PLUGINS="${IDEA}/plugins"
     IDEA_LIB="${IDEA}/lib"
 
@@ -126,18 +137,13 @@ function jpsBuild() {
 
     # -i
     # --modules "idea_main,idea_test"
+
+    echo "##teamcity[blockClosed name='jps-build']"
+    popd
 }
 
 echo "Updating shared git bare clone ${GIT_BARE}..."
 gitbare
-
-################ Gradle
-
-echo "Updating ${GRADLE_PROJECT}..."
-checkout ${GRADLE_PROJECT}
-#echo "jpsBuild=true" >> gradle.properties
-cd ${GRADLE_PROJECT}
-./gradlew clean  dist ideaPlugin --parallel
 
 ################ JPS
 
@@ -148,8 +154,20 @@ echo "jpsBuild=true" >> ${JPS_PROJECT}/gradle.properties
 jpsImportIdeaProject
 jpsBuild
 
+################ Gradle
+
+echo "##teamcity[blockOpened name='gradle-build' description='Running gradle build']"
+echo "Updating ${GRADLE_PROJECT}..."
+checkout ${GRADLE_PROJECT}
+#echo "jpsBuild=true" >> gradle.properties
+cd ${GRADLE_PROJECT}
+./gradlew clean  dist ideaPlugin --parallel
+echo "##teamcity[blockClosed name='gradle-build']"
+
 ################ Compare
 
+echo "##teamcity[blockOpened name='compare-distributions' description='Compare distributions']"
 rm -rf ${REPORT_DIR}
 mkdir -p ${REPORT_DIR}/diff
 ${DIST_COMPARE_BIN} ${GRADLE_PROJECT}/dist ${JPS_PROJECT}/dist ${REPORT_DIR}
+echo "##teamcity[blockClosed name='compare-distributions']"
