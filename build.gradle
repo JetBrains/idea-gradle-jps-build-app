@@ -31,11 +31,11 @@ intellij {
     sandboxDirectory = "$project.rootDir/local"
 }
 
-group 'org.jetbrains'
-version '0.1' // Plugin version
+tasks.getByName('runIde') {
+    systemProperties = ['java.awt.headless': 'true']
+    args = ['importAndSave', new File('..', 'jps').getCanonicalFile().getAbsolutePath().toString(), (System.getenv('JDK_18'))]
+    maxHeapSize = '2G'
+}
 
-//publishPlugin {
-//    username 'zolotov'
-//    password 'password'
-//    channels 'nightly'
-//}
+group 'org.jetbrains'
+version '0.1'
