@@ -1,7 +1,6 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.compiler.impl;
 
-import com.intellij.CommonBundle;
 import com.intellij.compiler.*;
 import com.intellij.compiler.progress.CompilerTask;
 import com.intellij.compiler.server.BuildManager;
@@ -11,7 +10,6 @@ import com.intellij.notification.NotificationListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.compiler.*;
-import com.intellij.openapi.compiler.ex.CompilerPathsEx;
 import com.intellij.openapi.deployment.DeploymentUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -20,14 +18,9 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectBundle;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.roots.CompilerModuleExtension;
 import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.roots.ui.configuration.DefaultModuleConfigurationEditorFactory;
-import com.intellij.openapi.roots.ui.configuration.ProjectSettingsService;
-import com.intellij.openapi.ui.MessageType;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.io.FileUtil;
@@ -47,14 +40,11 @@ import com.intellij.util.containers.MultiMap;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.text.DateFormatUtil;
 import gnu.trove.THashSet;
-import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 import org.jetbrains.jps.api.*;
 import org.jetbrains.jps.model.java.JavaSourceRootType;
-
-import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
 import java.lang.ref.WeakReference;
 import java.util.*;
@@ -63,7 +53,8 @@ import java.util.concurrent.TimeUnit;
 import static org.jetbrains.jps.api.CmdlineRemoteProto.Message.ControllerMessage.ParametersMessage.TargetTypeBuildScope;
 
 /**
- * This class duplicates com.intellij.compiler.impl.CompileDriver
+ * This class is based on com.intellij.compiler.impl.CompileDriver and contains modifications
+ * required for work in headless mode.
  */
 public class InternalCompileDriver {
     private static final Logger LOG = Logger.getInstance("#com.intellij.compiler.impl.CompileDriver");
@@ -84,8 +75,9 @@ public class InternalCompileDriver {
     public void setCompilerFilter(@SuppressWarnings("unused") CompilerFilter compilerFilter) {
     }
 
-    public void rebuild(CompileStatusNotification callback) {
-        doRebuild(callback, new ProjectCompileScope(myProject));
+    // Added return type compared to CompileDriver in order to monitor current build process
+    public CompileContext rebuild(CompileStatusNotification callback) {
+        return doRebuild(callback, new ProjectCompileScope(myProject));
     }
 
     public void make(CompileScope scope, CompileStatusNotification callback) {
@@ -153,12 +145,14 @@ public class InternalCompileDriver {
         }
     }
 
-    private void doRebuild(CompileStatusNotification callback, final CompileScope compileScope) {
+    // Added return type compared to CompileDriver in order to monitor current build process
+    private CompileContext doRebuild(CompileStatusNotification callback, final CompileScope compileScope) {
         if (validateCompilerConfiguration(compileScope)) {
-            startup(compileScope, true, false, callback, null);
+            return startup(compileScope, true, false, callback, null);
         }
         else {
             callback.finished(true, 0, 0, DummyCompileContext.create(myProject));
+            return null;
         }
     }
 
@@ -260,7 +254,6 @@ public class InternalCompileDriver {
             @Override
             protected void handleCompileMessage(UUID sessionId, CmdlineRemoteProto.Message.BuilderMessage.CompileMessage message) {
                 final CmdlineRemoteProto.Message.BuilderMessage.CompileMessage.Kind kind = message.getKind();
-                //System.out.println(compilerMessage.getText());
                 final String messageText = message.getText();
                 if (kind == CmdlineRemoteProto.Message.BuilderMessage.CompileMessage.Kind.PROGRESS) {
                     final ProgressIndicator indicator = compileContext.getProgressIndicator();
@@ -356,16 +349,16 @@ public class InternalCompileDriver {
         });
     }
 
-    private void startup(final CompileScope scope, final boolean isRebuild, final boolean forceCompile,
-                         final CompileStatusNotification callback, final CompilerMessage message) {
-        startup(scope, isRebuild, forceCompile, false, callback, message);
+    private CompileContext startup(final CompileScope scope, final boolean isRebuild, final boolean forceCompile,
+                                   final CompileStatusNotification callback, final CompilerMessage message) {
+        return startup(scope, isRebuild, forceCompile, false, callback, message);
     }
 
-    private void startup(final CompileScope scope,
-                         final boolean isRebuild,
-                         final boolean forceCompile,
-                         boolean withModalProgress, final CompileStatusNotification callback,
-                         final CompilerMessage message) {
+    private CompileContextImpl startup(final CompileScope scope,
+                                       final boolean isRebuild,
+                                       final boolean forceCompile,
+                                       boolean withModalProgress, final CompileStatusNotification callback,
+                                       final CompilerMessage message) {
         ApplicationManager.getApplication().assertIsDispatchThread();
 
         final boolean isUnitTestMode = ApplicationManager.getApplication().isUnitTestMode();
@@ -434,32 +427,26 @@ public class InternalCompileDriver {
                 LOG.error(e); // todo
             }
             finally {
-                compilerCacheManager.flushCaches();
+                // flushCaches does not work in headless mode
+                //compilerCacheManager.flushCaches();
 
                 final long duration = notifyCompilationCompleted(compileContext, callback, COMPILE_SERVER_BUILD_STATUS.get(compileContext));
-                CompilerUtil.logDuration(
+                String logMessage =
                         "\tCOMPILATION FINISHED (BUILD PROCESS); Errors: " +
                                 compileContext.getMessageCount(CompilerMessageCategory.ERROR) +
                                 "; warnings: " +
-                                compileContext.getMessageCount(CompilerMessageCategory.WARNING),
-                        duration
-                );
+                                compileContext.getMessageCount(CompilerMessageCategory.WARNING);
+                CompilerUtil.logDuration(logMessage, duration);
             }
         };
 
         compileTask.start(compileWork, () -> {
             if (isRebuild) {
-                final int rv = Messages.showOkCancelDialog(
-                        myProject, "You are about to rebuild the whole project.\nRun 'Build Project' instead?", "Confirm Project Rebuild",
-                        "Build", "Rebuild", Messages.getQuestionIcon()
-                );
-                if (rv == Messages.OK /*yes, please, do run make*/) {
-                    startup(scope, false, false, callback, null);
-                    return;
-                }
+                startup(scope, false, false, callback, null);
             }
             startup(scope, isRebuild, forceCompile, callback, message);
         });
+        return compileContext;
     }
 
     @Nullable @TestOnly
@@ -470,22 +457,9 @@ public class InternalCompileDriver {
     /** @noinspection SSBasedInspection*/
     private long notifyCompilationCompleted(final CompileContextImpl compileContext, final CompileStatusNotification callback, final ExitStatus _status) {
         final long duration = System.currentTimeMillis() - compileContext.getStartCompilationStamp();
-        if (!myProject.isDisposed()) {
-            // refresh on output roots is required in order for the order enumerator to see all roots via VFS
-            final Module[] affectedModules = compileContext.getCompileScope().getAffectedModules();
 
-            if (_status != ExitStatus.UP_TO_DATE && _status != ExitStatus.CANCELLED) {
-                // have to refresh in case of errors too, because run configuration may be set to ignore errors
-                Collection<String> affectedRoots = ContainerUtil.newHashSet(CompilerPathsEx.getOutputPaths(affectedModules));
-                if (!affectedRoots.isEmpty()) {
-                    ProgressIndicator indicator = compileContext.getProgressIndicator();
-                    indicator.setText("Synchronizing output directories...");
-                    CompilerUtil.refreshOutputRoots(affectedRoots);
-                    indicator.setText("");
-                }
-            }
-        }
-        SwingUtilities.invokeLater(() -> {
+        // Swing utilities is not available in headless mode. Invoking directly
+        {
             int errorCount = 0;
             int warningCount = 0;
             try {
@@ -500,19 +474,10 @@ public class InternalCompileDriver {
 
             if (!myProject.isDisposed()) {
                 final String statusMessage = createStatusMessage(_status, warningCount, errorCount, duration);
-                final MessageType messageType = errorCount > 0 ? MessageType.ERROR : warningCount > 0 ? MessageType.WARNING : MessageType.INFO;
-                if (duration > ONE_MINUTE_MS && CompilerWorkspaceConfiguration.getInstance(myProject).DISPLAY_NOTIFICATION_POPUP) {
-                    ToolWindowManager.getInstance(myProject).notifyByBalloon(ToolWindowId.MESSAGES_WINDOW, messageType, statusMessage);
-                }
+                // Showing ui messages is not required
 
                 final String wrappedMessage = _status != ExitStatus.UP_TO_DATE? "<a href='#'>" + statusMessage + "</a>" : statusMessage;
-                final Notification notification = CompilerManager.NOTIFICATION_GROUP.createNotification(
-                        "", wrappedMessage,
-                        messageType.toNotificationType(),
-                        new MessagesActivationListener(compileContext)
-                ).setImportant(false);
-                compileContext.getBuildSession().registerCloseAction(notification::expire);
-                notification.notify(myProject);
+                // Showing ui messages is not required
 
                 if (_status != ExitStatus.UP_TO_DATE && compileContext.getMessageCount(null) > 0) {
                     final String msg = DateFormatUtil.formatDateTime(new Date()) + " - " + statusMessage;
@@ -520,7 +485,7 @@ public class InternalCompileDriver {
                 }
             }
 
-        });
+        }
         return duration;
     }
 
@@ -650,12 +615,12 @@ public class InternalCompileDriver {
                 }
             }
             if (!modulesWithoutJdkAssigned.isEmpty()) {
-                showNotSpecifiedError("error.jdk.not.specified", projectSdkNotSpecified, modulesWithoutJdkAssigned, ProjectBundle.message("modules.classpath.title"));
+                System.err.println(String.format("The following modules do not have assigned jdk [%s]", modulesWithoutJdkAssigned));
                 return false;
             }
 
             if (!modulesWithoutOutputPathSpecified.isEmpty()) {
-                showNotSpecifiedError("error.output.not.specified", projectOutputNotSpecified, modulesWithoutOutputPathSpecified, DefaultModuleConfigurationEditorFactory.getInstance().getOutputEditorDisplayName());
+                System.err.println(String.format("The following modules do not have specified path [%s]", modulesWithoutOutputPathSpecified));
                 return false;
             }
 
@@ -705,9 +670,7 @@ public class InternalCompileDriver {
         LOG.assertTrue(firstModule != null);
         String moduleNameToSelect = firstModule.getName();
         final String moduleNames = getModulesString(modulesInChunk);
-        Messages.showMessageDialog(myProject, CompilerBundle.message("error.chunk.modules.must.have.same.language.level", moduleNames),
-                CommonBundle.getErrorTitle(), Messages.getErrorIcon());
-        showConfigurationDialog(moduleNameToSelect, null);
+        System.err.println(String.format("The following modules have cyclic dependencies [%s].", moduleNames));
     }
 
     private void showCyclicModulesHaveDifferentJdksError(Set<Module> modulesInChunk) {
@@ -715,9 +678,7 @@ public class InternalCompileDriver {
         LOG.assertTrue(firstModule != null);
         String moduleNameToSelect = firstModule.getName();
         final String moduleNames = getModulesString(modulesInChunk);
-        Messages.showMessageDialog(myProject, CompilerBundle.message("error.chunk.modules.must.have.same.jdk", moduleNames),
-                CommonBundle.getErrorTitle(), Messages.getErrorIcon());
-        showConfigurationDialog(moduleNameToSelect, null);
+        System.err.println(String.format("The following modules have cyclic dependencies and different jdks: [%s]", moduleNames));
     }
 
     private static String getModulesString(Collection<Module> modulesInChunk) {
@@ -726,45 +687,6 @@ public class InternalCompileDriver {
 
     private static boolean hasSources(Module module, final JavaSourceRootType rootType) {
         return !ModuleRootManager.getInstance(module).getSourceRoots(rootType).isEmpty();
-    }
-
-    private void showNotSpecifiedError(@NonNls final String resourceId, boolean notSpecifiedValueInheritedFromProject, List<String> modules,
-                                       String editorNameToSelect) {
-        String nameToSelect = null;
-        final StringBuilder names = new StringBuilder();
-        final int maxModulesToShow = 10;
-        for (String name : ContainerUtil.getFirstItems(modules, maxModulesToShow)) {
-            if (nameToSelect == null && !notSpecifiedValueInheritedFromProject) {
-                nameToSelect = name;
-            }
-            if (names.length() > 0) {
-                names.append(",\n");
-            }
-            names.append("\"");
-            names.append(name);
-            names.append("\"");
-        }
-        if (modules.size() > maxModulesToShow) {
-            names.append(",\n...");
-        }
-        final String message = CompilerBundle.message(resourceId, modules.size(), names.toString());
-
-        if (ApplicationManager.getApplication().isUnitTestMode()) {
-            LOG.error(message);
-        }
-
-        Messages.showMessageDialog(myProject, message, CommonBundle.getErrorTitle(), Messages.getErrorIcon());
-        showConfigurationDialog(nameToSelect, editorNameToSelect);
-    }
-
-    private void showConfigurationDialog(@Nullable String moduleNameToSelect, @Nullable String tabNameToSelect) {
-        ProjectSettingsService service = ProjectSettingsService.getInstance(myProject);
-        if (moduleNameToSelect != null) {
-            service.showModuleConfigurationDialog(moduleNameToSelect, tabNameToSelect);
-        }
-        else {
-            service.openProjectSettings();
-        }
     }
 
     public static CompilerMessageCategory convertToCategory(CmdlineRemoteProto.Message.BuilderMessage.CompileMessage.Kind kind, CompilerMessageCategory defaultCategory) {
