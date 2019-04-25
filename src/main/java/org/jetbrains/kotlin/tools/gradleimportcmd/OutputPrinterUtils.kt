@@ -57,7 +57,7 @@ fun printException(e: Throwable) {
 }
 
 fun startTest(name: String) {
-    printMessage("Start test $name", "#teamcity[testStarted name='${escapeTcCharacters(name)}']")
+    printMessage("Start test $name", "##teamcity[testStarted name='${escapeTcCharacters(name)}']")
 }
 
 fun finishTest(name: String, failureMessage: String? = null, duration: Long? = null) {
@@ -65,7 +65,7 @@ fun finishTest(name: String, failureMessage: String? = null, duration: Long? = n
         printMessage("Test failed: $failureMessage", "##teamcity[testFailed name='${escapeTcCharacters(name)}' message='${escapeTcCharacters(failureMessage)}']")
     }
     val durationMsg = if (duration == null) "" else "duration='$duration'"
-    printMessage("Finish test $name", "#teamcity[testFinished name='${escapeTcCharacters(name)}' $durationMsg]")
+    printMessage("Finish test $name", "##teamcity[testFinished name='${escapeTcCharacters(name)}' $durationMsg]")
 }
 
 //TODO maybe use ##teamcity[buildProblem description='<description>' identity='<identity>']

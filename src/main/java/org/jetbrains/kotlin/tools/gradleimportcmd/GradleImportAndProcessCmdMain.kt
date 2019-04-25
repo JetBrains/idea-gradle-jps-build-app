@@ -31,6 +31,7 @@ import com.intellij.openapi.util.LowMemoryWatcher
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.plugins.gradle.settings.DefaultGradleProjectSettings
+import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.io.File
@@ -200,7 +201,8 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
 
         val projectSettings = GradleProjectSettings()
         projectSettings.externalProjectPath = projectPath
-        projectSettings.delegatedBuild = ThreeState.NO
+        projectSettings.delegatedBuild = ThreeState.NO // disable delegated build in irder to run JPS build
+        projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
         projectSettings.storeProjectFilesExternally = ThreeState.NO
         projectSettings.withQualifiedModuleNames()
 
