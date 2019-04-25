@@ -11,7 +11,7 @@
   <change-notes>Imports gradle project and save it</change-notes>
 
   <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-  <idea-version since-build="173.0"/>
+  <idea-version since-build="191.0"/>
 
   <depends>org.jetbrains.plugins.gradle</depends>
 
@@ -22,7 +22,7 @@
   -->
 
   <extensions defaultExtensionNs="com.intellij">
-    <appStarter implementation="org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportCmdMain"/>
+    <appStarter implementation="org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportAndProcessCmdMain"/>
 
     <externalSystemTaskNotificationListener implementation="org.jetbrains.kotlin.tools.gradleimportcmd.TNListener"/>
   </extensions>
