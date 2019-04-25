@@ -83,7 +83,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
     }
 
     override fun processCommand(args: Array<String>, currentDirectory: String?) {
-        printProgress("Processing command $args in working directory $currentDirectory", ProgressType.START)
+        printProgress("Processing command $args in working directory $currentDirectory")
         System.setProperty("idea.skip.indices.initialization", "true")
 
         // add low memory notifications
@@ -116,7 +116,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         } finally {
             afterGcLowMemoryNotifier = null // low memory notifications are not required any more
             beforeGcLowMemoryNotifier = null
-            printProgress("Exit application", ProgressType.FINISH)
+            printProgress("Exit application")
             application.exit(true, true)
         }
     }
@@ -160,7 +160,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                     printMessage("Progress indicator says that compilation is not running.", MessageStatus.ERROR)
                     break
                 }
-                printProgress("Compilation status: Errors: ${compileContext.getMessages(CompilerMessageCategory.ERROR).size}. Warnings: ${compileContext.getMessages(CompilerMessageCategory.WARNING).size}.", ProgressType.MESSAGE)
+                printProgress("Compilation status: Errors: ${compileContext.getMessages(CompilerMessageCategory.ERROR).size}. Warnings: ${compileContext.getMessages(CompilerMessageCategory.WARNING).size}.")
             }
 
             if (errorsCount > 0 || abortedStatus) {
@@ -174,7 +174,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
 
 
     private fun importProject(): Project? {
-        printProgress("Opening project", ProgressType.MESSAGE)
+        printProgress("Opening project")
         projectPath = projectPath.replace(File.separatorChar, '/')
         val vfsProject = LocalFileSystem.getInstance().findFileByPath(projectPath)
         if (vfsProject == null) {
@@ -190,7 +190,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
             return null
         }
         DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
-        printProgress("Project loaded, refreshing from Gradle", ProgressType.MESSAGE)
+        printProgress("Project loaded, refreshing from Gradle")
         WriteAction.runAndWait<RuntimeException> {
             val sdkType = JavaSdk.getInstance()
             mySdk = sdkType.createJdk("JDK_1.8", jdkPath, false)
@@ -235,7 +235,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 true
         )
 
-        printProgress("Unloading buildSrc modules", ProgressType.MESSAGE)
+        printProgress("Unloading buildSrc modules")
 
         val moduleManager = ModuleManager.getInstance(project)
         val buildSrcModuleNames = moduleManager.sortedModules
@@ -243,7 +243,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 .map { it.name }
         moduleManager.setUnloadedModules(buildSrcModuleNames)
 
-        printProgress("Save IDEA projects", ProgressType.MESSAGE)
+        printProgress("Save IDEA projects")
 
         project.save()
         ProjectManagerEx.getInstanceEx().openProject(project)
@@ -251,7 +251,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         ApplicationManager.getApplication().saveSettings()
         ApplicationManager.getApplication().saveAll()
 
-        printProgress("Import done", ProgressType.MESSAGE)
+        printProgress("Import done")
         return project
     }
 
