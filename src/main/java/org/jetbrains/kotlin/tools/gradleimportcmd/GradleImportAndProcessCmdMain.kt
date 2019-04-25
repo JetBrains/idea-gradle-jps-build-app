@@ -82,6 +82,11 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         printMessage("Low memory ${if (afterGc) "after GC" else ", invoking GC"}. Total memory=${runtime.totalMemory()}, free=${runtime.freeMemory()}", if (afterGc) MessageStatus.ERROR else MessageStatus.WARNING)
     }
 
+    private fun getUsedMemory(): Long {
+        val runtime = Runtime.getRuntime()
+        return runtime.totalMemory() - runtime.freeMemory()
+    }
+
     override fun processCommand(args: Array<String>, currentDirectory: String?) {
         printProgress("Processing command $args in working directory $currentDirectory")
         System.setProperty("idea.skip.indices.initialization", "true")
@@ -130,12 +135,17 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
             startTest("Compile project with JPS")
             var errorsCount = 0
             var abortedStatus = false
+            var compilationStarted = System.nanoTime()
             val callback = CompileStatusNotification { aborted, errors, warnings, compileContext ->
                 run {
                     try {
                         errorsCount = errors
                         abortedStatus = aborted
                         printMessage("Compilation done. Aborted=$aborted, Errors=$errors, Warnings=$warnings", MessageStatus.WARNING)
+                        reportStatistics("jps_compilation_errors", errors.toString())
+                        reportStatistics("jps_compilation_warnings", warnings.toString())
+                        reportStatistics("jps_compilation_duration", ((System.nanoTime() - compilationStarted)/1000_000).toString())
+
                         CompilerMessageCategory.values().forEach { category ->
                             compileContext.getMessages(category).forEach {
                                 val message = "$category - ${it.virtualFile?.canonicalPath ?: "-"}: ${it.message}"
@@ -217,6 +227,8 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
 
         val startTime = System.nanoTime() //NB do not use currentTimeMillis() as it is sensitive to time adjustment
         startTest("Import project")
+        reportStatistics("used_memory_before_import", getUsedMemory().toString())
+        reportStatistics("total_memory_before_import", Runtime.getRuntime().totalMemory().toString())
         refreshProject(
                 project,
                 GradleConstants.SYSTEM_ID,
@@ -224,6 +236,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 object : ExternalProjectRefreshCallback {
                     override fun onSuccess(externalProject: DataNode<ProjectData>?) {
                         finishTest("Import project", duration = (System.nanoTime() - startTime) / 1000_000)
+                        reportStatistics("import_duration", ((System.nanoTime() - startTime)/1000_000).toString())
                         if (externalProject != null) {
                             ServiceManager.getService(ProjectDataManager::class.java)
                                     .importData(externalProject, project, true)
@@ -237,6 +250,8 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 ProgressExecutionMode.MODAL_SYNC,
                 true
         )
+        reportStatistics("used_memory_after_import", getUsedMemory().toString())
+        reportStatistics("total_memory_after_import", Runtime.getRuntime().totalMemory().toString())
 
         printProgress("Unloading buildSrc modules")
 
