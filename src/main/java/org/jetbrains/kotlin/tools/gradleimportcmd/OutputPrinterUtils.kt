@@ -71,5 +71,9 @@ fun reportTestError(name: String, failureMessage: String) {
     printMessage("Test failed: $failureMessage", "##teamcity[testFailed name='${escapeTcCharacters(name)}' message='${escapeTcCharacters(failureMessage)}']")
 }
 
+fun reportStatistics(key: String, value: String) {
+    printMessage("Reported statistics $key=$value", "##teamcity[buildStatisticValue key='${escapeTcCharacters(key)}' value='${escapeTcCharacters(value)}']")
+}
+
 //TODO maybe use ##teamcity[buildProblem description='<description>' identity='<identity>']
 //TODO may be helpful for running in parallel  ##teamcity[<messageName> flowId='flowId' ...]
