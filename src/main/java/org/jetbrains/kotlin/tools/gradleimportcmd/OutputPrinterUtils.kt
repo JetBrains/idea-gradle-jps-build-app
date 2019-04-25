@@ -15,7 +15,10 @@ fun escapeTcCharacters(message: String) = message
 
 private fun printMessage(rawMessage: String, tcMessage: String) {
     if (runOnTeamcity) {
+        //TODO remove
+        println("++${tcMessage.replace('#','_')}")
         println(tcMessage)
+        println("--${tcMessage.replace('#','_')}")
     } else {
         println(rawMessage)
     }
