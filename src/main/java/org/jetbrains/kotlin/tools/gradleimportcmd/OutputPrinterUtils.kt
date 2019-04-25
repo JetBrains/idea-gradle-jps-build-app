@@ -61,10 +61,14 @@ fun startTest(name: String) {
 
 fun finishTest(name: String, failureMessage: String? = null, duration: Long? = null) {
     if (failureMessage != null) {
-        printMessage("Test failed: $failureMessage", "##teamcity[testFailed name='${escapeTcCharacters(name)}' message='${escapeTcCharacters(failureMessage)}']")
+        reportTestError(name, failureMessage)
     }
     val durationMsg = if (duration == null) "" else "duration='$duration'"
     printMessage("Finish test $name", "##teamcity[testFinished name='${escapeTcCharacters(name)}' $durationMsg]")
+}
+
+fun reportTestError(name: String, failureMessage: String) {
+    printMessage("Test failed: $failureMessage", "##teamcity[testFailed name='${escapeTcCharacters(name)}' message='${escapeTcCharacters(failureMessage)}']")
 }
 
 //TODO maybe use ##teamcity[buildProblem description='<description>' identity='<identity>']
