@@ -252,6 +252,9 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         )
         reportStatistics("used_memory_after_import", getUsedMemory().toString())
         reportStatistics("total_memory_after_import", Runtime.getRuntime().totalMemory().toString())
+        System.gc()
+        reportStatistics("used_memory_after_import_gc", getUsedMemory().toString())
+        reportStatistics("total_memory_after_import_gc", Runtime.getRuntime().totalMemory().toString())
 
         printProgress("Unloading buildSrc modules")
 
