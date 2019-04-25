@@ -140,7 +140,10 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                             compileContext.getMessages(category).forEach {
                                 val message = "$category - ${it.virtualFile?.canonicalPath ?: "-"}: ${it.message}"
                                 when (category) {
-                                    CompilerMessageCategory.ERROR -> printMessage(message, MessageStatus.ERROR)
+                                    CompilerMessageCategory.ERROR -> {
+                                        printMessage(message, MessageStatus.ERROR)
+                                        reportTestError("Compile project with JPS", message)
+                                    }
                                     CompilerMessageCategory.WARNING -> printMessage(message, MessageStatus.WARNING)
                                     else -> printMessage(message)
                                 }
