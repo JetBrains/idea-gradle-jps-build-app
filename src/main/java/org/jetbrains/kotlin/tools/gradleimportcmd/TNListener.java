@@ -18,32 +18,32 @@ public class TNListener implements ExternalSystemTaskNotificationListener {
 
     @Override
     public void onStart(@NotNull ExternalSystemTaskId id) {
-
+        OutputPrinterUtilsKt.printMessage("Start external system task " + id, null, null);
     }
 
     @Override
     public void onStatusChange(@NotNull ExternalSystemTaskNotificationEvent event) {
-        System.out.println(event.getDescription());
+        OutputPrinterUtilsKt.printMessage(event.getDescription(), null, null);
     }
 
     @Override
     public void onTaskOutput(@NotNull ExternalSystemTaskId id, @NotNull String text, boolean stdOut) {
-        System.out.println(text);
+        OutputPrinterUtilsKt.printMessage(text, null, null);
     }
 
     @Override
     public void onEnd(@NotNull ExternalSystemTaskId id) {
-
+        OutputPrinterUtilsKt.printMessage("End external system task " + id, null, null);
     }
 
     @Override
     public void onSuccess(@NotNull ExternalSystemTaskId id) {
-        System.out.println("Success " + id);
+        OutputPrinterUtilsKt.printMessage("Successfully finished external system task" + id, null, null);
     }
 
     @Override
     public void onFailure(@NotNull ExternalSystemTaskId id, @NotNull Exception e) {
-        e.printStackTrace();
+        OutputPrinterUtilsKt.printException(e);
     }
 
     @Override
