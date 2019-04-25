@@ -24,12 +24,8 @@ private fun printMessage(rawMessage: String, tcMessage: String) {
     }
 }
 
-enum class ProgressType(val message: String) {
-    START("progressStart"), FINISH("progressFinish"), MESSAGE("progressMessage")
-}
-
-fun printProgress(message: String, type: ProgressType) {
-    printMessage(message, "##teamcity[${type.message} '${escapeTcCharacters(message)}']")
+fun printProgress(message: String) {
+    printMessage(message, "##teamcity[progressMessage '${escapeTcCharacters(message)}']")
 }
 
 enum class MessageStatus {
