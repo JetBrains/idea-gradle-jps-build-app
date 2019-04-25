@@ -41,6 +41,12 @@ import kotlin.system.exitProcess
 const val cmd = "importAndProcess"
 
 class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
+    // exit codes
+    val invalidCommandLine = 2
+    val lowMemory = 3
+    val internalError = 4
+    val compilationFailed = 5
+
     override fun isHeadless(): Boolean = true
     private val IMPORT_AND_BUILD = "importAndBuild"
     override fun getUsageMessage(): String = "Usage: idea $cmd [importAndSave|$IMPORT_AND_BUILD] <path-to-gradle-project> <path-to-jdk>"
@@ -53,7 +59,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
 
     private fun printHelp() {
         println(usageMessage)
-        exitProcess(1)
+        exitProcess(invalidCommandLine)
     }
 
     override fun premain(args: Array<out String>) {
@@ -70,7 +76,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         }
     }
 
-    private inline fun printMemory(afterGc: Boolean) {
+    private fun printMemory(afterGc: Boolean) {
         val runtime = Runtime.getRuntime()
         printMessage("Low memory ${if (afterGc) "after GC" else ", invoking GC"}. Total memory=${runtime.totalMemory()}, free=${runtime.freeMemory()}", if (afterGc) MessageStatus.ERROR else MessageStatus.WARNING)
     }
@@ -82,7 +88,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         // add low memory notifications
         var afterGcLowMemoryNotifier = LowMemoryWatcher.register({
             printMemory(true)
-            exitProcess(2)
+            exitProcess(lowMemory)
 
         }, LowMemoryWatcher.LowMemoryWatcherType.ONLY_AFTER_GC)
         var beforeGcLowMemoryNotifier = LowMemoryWatcher.register({ printMemory(false) },
@@ -118,7 +124,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         val finishedLautch = CountDownLatch(1)
         if (project == null) {
             printMessage("Project is null", MessageStatus.ERROR)
-            exitProcess(1)
+            exitProcess(internalError)
         } else {
             startTest("Compile project with JPS")
             var errorsCount = 0
@@ -158,7 +164,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
 
             if (errorsCount > 0 || abortedStatus) {
                 finishTest("Compile project with JPS", "Compilation failed with $errorsCount errors")
-                exitProcess(4)
+                exitProcess(compilationFailed)
             } else {
                 finishTest("Compile project with JPS")
             }
