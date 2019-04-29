@@ -52,16 +52,20 @@ fun printException(e: Throwable) {
     }
 }
 
-fun startTest(name: String) {
-    printMessage("Start test $name", "##teamcity[testStarted name='${escapeTcCharacters(name)}']")
+enum class OperationType(val startName: String, val finishName: String) {
+    TEST("testStarted", "testFinished"), COMPILATION("compilationStarted", "compilationFinished")
 }
 
-fun finishTest(name: String, failureMessage: String? = null, duration: Long? = null) {
+fun startOperation(operation: OperationType, name: String) {
+    printMessage("Start test $name", "##teamcity[${operation.startName} name='${escapeTcCharacters(name)}']")
+}
+
+fun finishOperation(operation: OperationType, name: String, failureMessage: String? = null, duration: Long? = null) {
     if (failureMessage != null) {
         reportTestError(name, failureMessage)
     }
     val durationMsg = if (duration == null) "" else "duration='$duration'"
-    printMessage("Finish test $name", "##teamcity[testFinished name='${escapeTcCharacters(name)}' $durationMsg]")
+    printMessage("Finish test $name", "##teamcity[${operation.startName} name='${escapeTcCharacters(name)}' $durationMsg]")
 }
 
 fun reportTestError(name: String, failureMessage: String) {
