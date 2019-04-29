@@ -12,6 +12,7 @@ import com.intellij.openapi.compiler.CompilerMessageCategory
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
+import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
@@ -132,7 +133,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
             printMessage("Project is null", MessageStatus.ERROR)
             exitProcess(internalError)
         } else {
-            startTest("Compile project with JPS")
+            startOperation(OperationType.COMPILATION,"Compile project with JPS")
             var errorsCount = 0
             var abortedStatus = false
             var compilationStarted = System.nanoTime()
@@ -152,7 +153,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                                 when (category) {
                                     CompilerMessageCategory.ERROR -> {
                                         printMessage(message, MessageStatus.ERROR)
-                                        reportTestError("Compile project with JPS", message)
+                                        //reportTestError("Compile project with JPS", message)
                                     }
                                     CompilerMessageCategory.WARNING -> printMessage(message, MessageStatus.WARNING)
                                     else -> printMessage(message)
@@ -177,10 +178,10 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
             }
 
             if (errorsCount > 0 || abortedStatus) {
-                finishTest("Compile project with JPS", "Compilation failed with $errorsCount errors")
+                finishOperation(OperationType.COMPILATION,"Compile project with JPS", "Compilation failed with $errorsCount errors")
                 exitProcess(compilationFailed)
             } else {
-                finishTest("Compile project with JPS")
+                finishOperation(OperationType.COMPILATION,"Compile project with JPS")
             }
         }
     }
@@ -226,7 +227,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         systemSettings.linkProject(projectSettings)
 
         val startTime = System.nanoTime() //NB do not use currentTimeMillis() as it is sensitive to time adjustment
-        startTest("Import project")
+        startOperation(OperationType.TEST,"Import project")
         reportStatistics("used_memory_before_import", getUsedMemory().toString())
         reportStatistics("total_memory_before_import", Runtime.getRuntime().totalMemory().toString())
         refreshProject(
@@ -235,15 +236,19 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 projectPath,
                 object : ExternalProjectRefreshCallback {
                     override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-                        finishTest("Import project", duration = (System.nanoTime() - startTime) / 1000_000)
+                        finishOperation(OperationType.TEST,"Import project", duration = (System.nanoTime() - startTime) / 1000_000)
                         reportStatistics("import_duration", ((System.nanoTime() - startTime)/1000_000).toString())
                         if (externalProject != null) {
                             ServiceManager.getService(ProjectDataManager::class.java)
                                     .importData(externalProject, project, true)
                         } else {
-                            finishTest("Import project", "Filed to import project. See IDEA logs for details")
+                            finishOperation(OperationType.TEST,"Import project", "Filed to import project. See IDEA logs for details")
                             gracefulExit(project)
                         }
+                    }
+
+                    override fun onFailure(externalTaskId: ExternalSystemTaskId, errorMessage: String, errorDetails: String?) {
+                        finishOperation(OperationType.TEST,"Import project", "Filed to import project: $errorMessage. Details: $errorDetails")
                     }
                 },
                 false,
