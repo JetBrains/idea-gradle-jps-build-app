@@ -236,9 +236,9 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                 projectPath,
                 object : ExternalProjectRefreshCallback {
                     override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-                        finishOperation(OperationType.TEST,"Import project", duration = (System.nanoTime() - startTime) / 1000_000)
                         reportStatistics("import_duration", ((System.nanoTime() - startTime)/1000_000).toString())
                         if (externalProject != null) {
+                            finishOperation(OperationType.TEST,"Import project", duration = (System.nanoTime() - startTime) / 1000_000)
                             ServiceManager.getService(ProjectDataManager::class.java)
                                     .importData(externalProject, project, true)
                         } else {

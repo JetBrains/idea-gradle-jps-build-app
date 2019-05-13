@@ -52,23 +52,26 @@ fun printException(e: Throwable) {
     }
 }
 
-enum class OperationType(val startName: String, val finishName: String) {
-    TEST("testStarted", "testFinished"), COMPILATION("compilationStarted", "compilationFinished")
+enum class OperationType(val startName: String, val attributeName: String, val finishName: String) {
+    TEST("testStarted", "name","testFinished"), COMPILATION("compilationStarted", "compiler","compilationFinished")
 }
 
 fun startOperation(operation: OperationType, name: String) {
-    printMessage("Start test $name", "##teamcity[${operation.startName} name='${escapeTcCharacters(name)}']")
+    printMessage("Start ${operation.name} $name", "##teamcity[${operation.startName} ${operation.attributeName}='${escapeTcCharacters(name)}']")
 }
 
 fun finishOperation(operation: OperationType, name: String, failureMessage: String? = null, duration: Long? = null) {
     if (failureMessage != null) {
-        reportTestError(name, failureMessage)
+        when (operation) {
+            OperationType.TEST -> reportOperationError(name, failureMessage)
+            OperationType.COMPILATION -> printMessage(failureMessage, MessageStatus.ERROR)
+        }
     }
     val durationMsg = if (duration == null) "" else "duration='$duration'"
-    printMessage("Finish test $name", "##teamcity[${operation.startName} name='${escapeTcCharacters(name)}' $durationMsg]")
+    printMessage("Finish ${operation.name} $name", "##teamcity[${operation.finishName} ${operation.attributeName}='${escapeTcCharacters(name)}' $durationMsg]")
 }
 
-fun reportTestError(name: String, failureMessage: String) {
+fun reportOperationError(name: String, failureMessage: String) {
     printMessage("Test failed: $failureMessage", "##teamcity[testFailed name='${escapeTcCharacters(name)}' message='${escapeTcCharacters(failureMessage)}']")
 }
 
