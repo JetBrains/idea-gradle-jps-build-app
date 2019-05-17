@@ -245,6 +245,18 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
                             finishOperation(OperationType.TEST,"Import project", "Filed to import project. See IDEA logs for details")
                             gracefulExit(project)
                         }
+                        if (externalProject != null) {
+                            val start = System.nanoTime()
+                            val memoryLeakTestName = "Check for memory leaks"
+                            startOperation(OperationType.TEST, memoryLeakTestName)
+                            val memoryLeakChecker = MemoryLeakChecker(externalProject) {printMessage(it, MessageStatus.ERROR)}
+                            reportStatistics("memory_number_of_leaked_objects", memoryLeakChecker.leakedObjects.size.toString())
+                            if (memoryLeakChecker.errorsCount == 0) {
+                                finishOperation(OperationType.TEST, memoryLeakTestName, duration = ((System.nanoTime() - start) / 1000_000))
+                            } else {
+                                finishOperation(OperationType.TEST, memoryLeakTestName, failureMessage = "Check for memory leaks finished with ${memoryLeakChecker.errorsCount} errors.", duration = ((System.nanoTime() - start) / 1000_000))
+                            }
+                        }
                     }
 
                     override fun onFailure(externalTaskId: ExternalSystemTaskId, errorMessage: String, errorDetails: String?) {
