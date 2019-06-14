@@ -273,14 +273,6 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
         reportStatistics("used_memory_after_import_gc", getUsedMemory().toString())
         reportStatistics("total_memory_after_import_gc", Runtime.getRuntime().totalMemory().toString())
 
-        printProgress("Unloading buildSrc modules")
-
-        val moduleManager = ModuleManager.getInstance(project)
-        val buildSrcModuleNames = moduleManager.sortedModules
-                .filter { it.name.contains("buildSrc") }
-                .map { it.name }
-        moduleManager.setUnloadedModules(buildSrcModuleNames)
-
         printProgress("Save IDEA projects")
 
         project.save()
