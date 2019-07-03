@@ -89,7 +89,7 @@ class GradleImportAndProcessCmdMain : ApplicationStarterBase(cmd, 3) {
     }
 
     override fun processCommand(args: Array<String>, currentDirectory: String?) {
-        printProgress("Processing command $args in working directory $currentDirectory")
+        printProgress("Processing command ${args.joinToString(";")} in working directory $currentDirectory")
         System.setProperty("idea.skip.indices.initialization", "true")
 
         // add low memory notifications
