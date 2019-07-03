@@ -3,5 +3,6 @@ local/
 local_test/
 sandbox/
 utils/
-.idea/modules/
-.idea/workspace.xml
+.idea/
+.gradle/
+build/
