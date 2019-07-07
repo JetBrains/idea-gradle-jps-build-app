@@ -22,7 +22,7 @@
   -->
 
   <extensions defaultExtensionNs="com.intellij">
-    <appStarter implementation="org.jetbrains.kotlin.tools.gradleimportcmd.GradleImportAndProcessCmdMain"/>
+    <appStarter implementation="org.jetbrains.kotlin.tools.testutils.IntegrationTestRunner"/>
 
     <externalSystemTaskNotificationListener implementation="org.jetbrains.kotlin.tools.gradleimportcmd.TNListener"/>
   </extensions>

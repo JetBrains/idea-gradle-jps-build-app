@@ -4,6 +4,7 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId;
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotificationEvent;
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotificationListener;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.tools.testutils.OutputPrinterUtilsKt;
 
 public class TNListener implements ExternalSystemTaskNotificationListener {
     @Override

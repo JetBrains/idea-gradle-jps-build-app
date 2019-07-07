@@ -1,4 +1,4 @@
-package org.jetbrains.kotlin.tools.gradleimportcmd
+package org.jetbrains.kotlin.tools.testutils
 
 import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
@@ -48,7 +48,8 @@ fun printException(e: Throwable) {
         PrintWriter(stream).use {
             e.printStackTrace(it)
         }
-        printMessage(e.message?:"", MessageStatus.ERROR, stream.toString())
+        printMessage(e.message
+                ?: "", MessageStatus.ERROR, stream.toString())
     }
 }
 

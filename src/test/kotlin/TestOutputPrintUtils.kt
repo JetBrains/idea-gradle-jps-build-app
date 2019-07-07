@@ -1,5 +1,6 @@
 package org.jetbrains.kotlin.tools.gradleimportcmd
 
+import org.jetbrains.kotlin.tools.testutils.escapeTcCharacters
 import org.junit.Assert
 import org.junit.Test
 
