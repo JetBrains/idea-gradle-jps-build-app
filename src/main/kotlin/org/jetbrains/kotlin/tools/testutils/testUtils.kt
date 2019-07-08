@@ -100,17 +100,20 @@ private fun doImportProject(projectPath: String, jdkPath: String): Project? {
             path,
             object : ExternalProjectRefreshCallback {
                 override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-                    reportStatistics("import_duration", ((System.nanoTime() - startTime) / 1000_000).toString())
-                    if (externalProject != null) {
-                        finishOperation(OperationType.TEST, "Import project", duration = (System.nanoTime() - startTime) / 1000_000)
-                        ServiceManager.getService(ProjectDataManager::class.java)
-                                .importData(externalProject, project, true)
-                    } else {
-                        finishOperation(OperationType.TEST, "Import project", "Filed to import project. See IDEA logs for details")
-                        throw RuntimeException("Failed to import project due to unknown error")
+                    try {
+                        reportStatistics("import_duration", ((System.nanoTime() - startTime) / 1000_000).toString())
+                        if (externalProject != null) {
+                            finishOperation(OperationType.TEST, "Import project", duration = (System.nanoTime() - startTime) / 1000_000)
+                            ServiceManager.getService(ProjectDataManager::class.java)
+                                    .importData(externalProject, project, true)
+                        } else {
+                            finishOperation(OperationType.TEST, "Import project", "Filed to import project. See IDEA logs for details")
+                            throw RuntimeException("Failed to import project due to unknown error")
+                        }
+                        testExternalSubsystemForProxyMemoryLeak(externalProject)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                    testExternalSubsystemForProxyMemoryLeak(externalProject)
-
                 }
 
 
@@ -309,4 +312,8 @@ private fun testExternalSubsystemForProxyMemoryLeak(externalProject: DataNode<Pr
     } else {
         finishOperation(OperationType.TEST, memoryLeakTestName, failureMessage = "Check for memory leaks finished with ${memoryLeakChecker.errorsCount} errors.", duration = ((System.nanoTime() - start) / 1000_000))
     }
+}
+
+fun setIndexInitialization(value: Boolean) {
+    System.setProperty("idea.skip.indices.initialization", (!value).toString())
 }
