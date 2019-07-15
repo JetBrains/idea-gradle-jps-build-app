@@ -6,6 +6,10 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotifica
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.tools.testutils.OutputPrinterUtilsKt;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
+
 public class TNListener implements ExternalSystemTaskNotificationListener {
     @Override
     public void onQueued(@NotNull ExternalSystemTaskId id, String workingDir) {
@@ -30,6 +34,7 @@ public class TNListener implements ExternalSystemTaskNotificationListener {
     @Override
     public void onTaskOutput(@NotNull ExternalSystemTaskId id, @NotNull String text, boolean stdOut) {
         OutputPrinterUtilsKt.printMessage(text, null, null);
+        GradleModelBuilderOverheadContainer.reportOutput(text);
     }
 
     @Override
@@ -56,4 +61,6 @@ public class TNListener implements ExternalSystemTaskNotificationListener {
     public void onCancel(@NotNull ExternalSystemTaskId id) {
         System.out.println("Cancelled " + id);
     }
+
 }
+
