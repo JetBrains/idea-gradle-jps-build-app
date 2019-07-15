@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.tools.testutils.*
 class JpsImportAndBuild : ImportAndSave() {
     override fun run(args: List<String>, workingDir: String?) {
         setIndexInitialization(false)
-        importProject(projectPath, jdkPath)?.let {
+        importProject(projectPath, jdkPath, true)?.let {
             setDelegationMode(projectPath, it, true)
             buildProject(it)
         }

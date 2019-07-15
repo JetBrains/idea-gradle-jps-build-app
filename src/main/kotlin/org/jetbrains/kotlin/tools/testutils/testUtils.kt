@@ -52,12 +52,12 @@ fun printMemory(afterGc: Boolean) {
     printMessage("Low memory ${if (afterGc) "after GC" else ", invoking GC"}. Total memory=${runtime.totalMemory()}, free=${runtime.freeMemory()}", if (afterGc) MessageStatus.ERROR else MessageStatus.WARNING)
 }
 
-fun importProject(projectPath: String, jdkPath: String): Project? {
+fun importProject(projectPath: String, jdkPath: String, inspectForMemoryLeak: Boolean, metricsSuffixName: String = ""): Project? {
     val application = ApplicationManagerEx.getApplicationEx()
     return application.runReadAction(Computable<Project?> {
         return@Computable try {
             application.isSaveAllowed = true
-            doImportProject(projectPath, jdkPath)
+            doImportProject(projectPath, jdkPath, metricsSuffixName, inspectForMemoryLeak)
         } catch (e: Exception) {
             printException(e)
             null
@@ -65,7 +65,7 @@ fun importProject(projectPath: String, jdkPath: String): Project? {
     })
 }
 
-private fun doImportProject(projectPath: String, jdkPath: String): Project? {
+private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixName: String, inspectForMemoryLeak: Boolean): Project? {
     printProgress("Opening project")
     val path = projectPath.replace(File.separatorChar, '/')
     val vfsProject = LocalFileSystem.getInstance().findFileByPath(path)
@@ -92,44 +92,48 @@ private fun doImportProject(projectPath: String, jdkPath: String): Project? {
 
     val startTime = System.nanoTime() //NB do not use currentTimeMillis() as it is sensitive to time adjustment
     startOperation(OperationType.TEST, "Import project")
-    reportStatistics("used_memory_before_import", getUsedMemory().toString())
-    reportStatistics("total_memory_before_import", Runtime.getRuntime().totalMemory().toString())
+    reportStatistics("used_memory_before_import$metricsSuffixName", getUsedMemory().toString())
+    reportStatistics("total_memory_before_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
+
+    val refreshCallback = object : ExternalProjectRefreshCallback {
+        override fun onSuccess(externalProject: DataNode<ProjectData>?) {
+            try {
+                reportStatistics("import_duration$metricsSuffixName", ((System.nanoTime() - startTime) / 1000_000).toString())
+                if (externalProject != null) {
+                    finishOperation(OperationType.TEST, "Import project", duration = (System.nanoTime() - startTime) / 1000_000)
+                    ServiceManager.getService(ProjectDataManager::class.java)
+                            .importData(externalProject, project, true)
+                } else {
+                    finishOperation(OperationType.TEST, "Import project", "Filed to import project. See IDEA logs for details")
+                    throw RuntimeException("Failed to import project due to unknown error")
+                }
+                if (inspectForMemoryLeak) {
+                    testExternalSubsystemForProxyMemoryLeak(externalProject)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+
+        override fun onFailure(externalTaskId: ExternalSystemTaskId, errorMessage: String, errorDetails: String?) {
+            finishOperation(OperationType.TEST, "Import project", "Filed to import project: $errorMessage. Details: $errorDetails")
+        }
+    }
     ExternalSystemUtil.refreshProject(
             project,
             GradleConstants.SYSTEM_ID,
             path,
-            object : ExternalProjectRefreshCallback {
-                override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-                    try {
-                        reportStatistics("import_duration", ((System.nanoTime() - startTime) / 1000_000).toString())
-                        if (externalProject != null) {
-                            finishOperation(OperationType.TEST, "Import project", duration = (System.nanoTime() - startTime) / 1000_000)
-                            ServiceManager.getService(ProjectDataManager::class.java)
-                                    .importData(externalProject, project, true)
-                        } else {
-                            finishOperation(OperationType.TEST, "Import project", "Filed to import project. See IDEA logs for details")
-                            throw RuntimeException("Failed to import project due to unknown error")
-                        }
-                        testExternalSubsystemForProxyMemoryLeak(externalProject)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
-
-                override fun onFailure(externalTaskId: ExternalSystemTaskId, errorMessage: String, errorDetails: String?) {
-                    finishOperation(OperationType.TEST, "Import project", "Filed to import project: $errorMessage. Details: $errorDetails")
-                }
-            },
+            refreshCallback,
             false,
             ProgressExecutionMode.MODAL_SYNC,
             true
     )
-    reportStatistics("used_memory_after_import", getUsedMemory().toString())
-    reportStatistics("total_memory_after_import", Runtime.getRuntime().totalMemory().toString())
+    reportStatistics("used_memory_after_import$metricsSuffixName", getUsedMemory().toString())
+    reportStatistics("total_memory_after_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
     System.gc()
-    reportStatistics("used_memory_after_import_gc", getUsedMemory().toString())
-    reportStatistics("total_memory_after_import_gc", Runtime.getRuntime().totalMemory().toString())
+    reportStatistics("used_memory_after_import_gc$metricsSuffixName", getUsedMemory().toString())
+    reportStatistics("total_memory_after_import_gc$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
 
     printProgress("Save IDEA projects")
 
@@ -316,4 +320,28 @@ private fun testExternalSubsystemForProxyMemoryLeak(externalProject: DataNode<Pr
 
 fun setIndexInitialization(value: Boolean) {
     System.setProperty("idea.skip.indices.initialization", (!value).toString())
+}
+
+fun readStoredConfigFiles(projectPath: String): ConfigFileSet {
+    TODO("NOT IMPLEMENTED")
+}
+
+fun enableModelBuilderStatistics(projectPath: String) {
+    val property = "-Didea.gradle.custom.tooling.perf=true"
+    val propertiesFile = File(projectPath, "gradle.properties")
+    val currentFileContent = propertiesFile.readText()
+    if (! currentFileContent.contains(property)) {
+        val result = currentFileContent.split("\n").map { it.trim() }.map {
+            if (it.startsWith("org.gradle.jvmargs=")) {
+                "$it $property"
+            } else {
+                it
+            }
+        }
+        if (result.none { it.contains(property) }) {
+            propertiesFile.appendText(System.lineSeparator() + "org.gradle.jvmargs=$property")
+        } else {
+            propertiesFile.writeText(result.joinToString(System.lineSeparator()))
+        }
+    }
 }
