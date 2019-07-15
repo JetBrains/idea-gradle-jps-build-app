@@ -27,6 +27,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
+import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
 import org.jetbrains.plugins.gradle.settings.DefaultGradleProjectSettings
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
@@ -74,6 +75,9 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
         return null
     }
 
+    if (! File(path, ".idea").exists()) {
+        File(path, ".idea").mkdirs()
+    }
     val project = ProjectUtil.openProject(path, null, false)
 
     if (project == null) {
@@ -329,6 +333,9 @@ fun readStoredConfigFiles(projectPath: String): ConfigFileSet {
 fun enableModelBuilderStatistics(projectPath: String) {
     val property = "-Didea.gradle.custom.tooling.perf=true"
     val propertiesFile = File(projectPath, "gradle.properties")
+    if (! propertiesFile.exists()) {
+        propertiesFile.createNewFile()
+    }
     val currentFileContent = propertiesFile.readText()
     if (! currentFileContent.contains(property)) {
         val result = currentFileContent.split("\n").map { it.trim() }.map {
@@ -343,5 +350,11 @@ fun enableModelBuilderStatistics(projectPath: String) {
         } else {
             propertiesFile.writeText(result.joinToString(System.lineSeparator()))
         }
+    }
+}
+
+fun reportModelBuildersOverhead() {
+    GradleModelBuilderOverheadContainer.getOverhead().forEach { service, overhead ->
+        reportStatistics("gradle_model_builder_overhead_$service", "$overhead")
     }
 }
