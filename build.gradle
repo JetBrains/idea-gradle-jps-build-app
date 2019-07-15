@@ -36,9 +36,21 @@ intellij {
 }
 
 tasks.getByName('runIde') {
-    systemProperties = ['java.awt.headless': 'true', 'projectPath': new File('..', 'jps').getCanonicalFile().getAbsolutePath().toString(), 'jdkPath': System.getenv('JDK_18')]
-    args = ['runIntegrationTest', 'JpsImportAndBuild']
-    maxHeapSize = '2G'
+    def workingDir = System.getenv("working_dir")
+    if (workingDir == null) {
+        workingDir = "../jps"
+    }
+    def testName = System.getenv("test_name")
+    if (testName == null) {
+        testName = 'JpsImportAndBuild'
+    }
+    def heapSize = System.getenv("idea_heap_size")
+    if (heapSize == null) {
+        heapSize = '2G'
+    }
+    systemProperties = ['java.awt.headless': 'true', 'projectPath': new File(workingDir).getCanonicalFile().getAbsolutePath().toString(), 'jdkPath': System.getenv('JDK_18')]
+    args = ['runIntegrationTest', testName]
+    maxHeapSize = heapSize
 }
 
 group 'org.jetbrains'
