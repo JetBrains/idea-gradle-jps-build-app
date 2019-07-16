@@ -1,5 +1,5 @@
 <idea-plugin>
-  <id>org.jetbrains.gradle-import-and-save</id>
+  <id>org.jetbrains.gradle-integration-testing-plugin</id>
   <name>Import Gradle Project Command Line</name>
   <version>1.0</version>
   <vendor email="Sergey.Rostov@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
