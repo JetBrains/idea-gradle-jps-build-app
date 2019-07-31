@@ -12,6 +12,7 @@ abstract class TestSuite {
 
     open fun setUp() {
         memoryWatcher = MemoryWatcher(true)
+        setIndexInitialization(false)
     }
 
     open fun tearDown() {
