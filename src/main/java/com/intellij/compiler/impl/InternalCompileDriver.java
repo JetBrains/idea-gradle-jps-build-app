@@ -228,7 +228,7 @@ public class InternalCompileDriver {
         }
 
         final MessageBus messageBus = myProject.getMessageBus();
-        final MultiMap<String, Artifact> outputToArtifact = ArtifactCompilerUtil.containsArtifacts(scopes) ? ArtifactCompilerUtil.createOutputToArtifactMap(myProject) : null;
+        final MultiMap<String, Artifact> outputToArtifact = ArtifactCompilerUtil.createOutputToArtifactMap(myProject);
         final BuildManager buildManager = BuildManager.getInstance();
         buildManager.cancelAutoMakeTasks(myProject);
         return buildManager.scheduleBuild(myProject, compileContext.isRebuild(), compileContext.isMake(), onlyCheckUpToDate, scopes, paths, builderParams, new DefaultMessageHandler(myProject) {
