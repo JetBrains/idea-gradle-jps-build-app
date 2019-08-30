@@ -1,6 +1,7 @@
 package org.jetbrains.kotlin.tools.testutils
 
 import com.intellij.compiler.CompilerConfigurationImpl
+import com.intellij.compiler.CompilerWorkspaceConfiguration
 import com.intellij.compiler.impl.InternalCompileDriver
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
@@ -207,6 +208,7 @@ fun buildProject(project: Project?): Boolean {
         }
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
+        CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
 
         val compileContext = InternalCompileDriver(project).rebuild(callback)
         while (!finishedLautch.await(1, TimeUnit.MINUTES)) {
