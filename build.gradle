@@ -67,8 +67,14 @@ tasks.getByName('runIde') {
     println("Executing test [$testName] in folder [$absoluteWorkingDir]")
     systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_18')]
     args = ['runIntegrationTest', testName]
+    
     maxHeapSize = heapSize
+
+    if ("true" == System.getenv("enable_serial_gc")) {
+        jvmArgs = ['-XX:+UseSerialGC', '-XX:MinHeapFreeRatio=1', '-XX:MaxHeapFreeRatio=99']
+    }
 }
 
 group 'org.jetbrains'
 version '0.1'
+
