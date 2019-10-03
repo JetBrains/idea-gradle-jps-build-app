@@ -1,5 +1,6 @@
 buildscript {
     repositories {
+        mavenLocal()
         mavenCentral()
         maven {
             url "https://oss.sonatype.org/content/repositories/snapshots/"
@@ -21,8 +22,8 @@ plugins {
 apply plugin: 'org.jetbrains.intellij'
 
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
 }
 
 dependencies {
