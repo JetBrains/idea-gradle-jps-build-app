@@ -29,7 +29,6 @@ import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
-import org.jetbrains.plugins.gradle.settings.DefaultGradleProjectSettings
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
@@ -153,10 +152,10 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
 }
 
 fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
-    DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
+    //TODO: set default mode? DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
     val projectSettings = GradleProjectSettings()
     projectSettings.externalProjectPath = path
-    projectSettings.delegatedBuild = if (delegationMode) ThreeState.YES else ThreeState.NO // disable delegated build in irder to run JPS build
+    projectSettings.delegatedBuild = delegationMode
     projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
     projectSettings.storeProjectFilesExternally = ThreeState.NO
     projectSettings.withQualifiedModuleNames()

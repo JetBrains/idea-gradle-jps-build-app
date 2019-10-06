@@ -14,6 +14,8 @@
   <idea-version since-build="191.0"/>
 
   <depends>org.jetbrains.plugins.gradle</depends>
+  <depends>com.intellij.modules.java</depends>
+
 
   <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
        on how to target different products -->
