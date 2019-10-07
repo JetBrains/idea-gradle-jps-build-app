@@ -19,12 +19,12 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
             "Usage: runIntegrationTest <testName> <arguments> where testNAme one of:${System.lineSeparator()}" +
                     testSuits.joinToString(separator = ",", postfix = ".") { it.javaClass.simpleName }
 
-    private fun findSuite(args: Array<out String>): List<TestSuite> {
+    private fun findSuite(args: List<out String>): List<TestSuite> {
         val subArgs = subArgs(args)
         return testSuits.filter { it.javaClass.simpleName == args[1] && it.acceptArguments(subArgs) }
     }
 
-    private fun checkArguments(args: Array<String>): Boolean {
+    private fun checkArguments(args: List<String>): Boolean {
         if (args.size < 2) {
             return false
         }
@@ -36,14 +36,14 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         return foundSuits.size == 1
     }
 
-    override fun premain(args: Array<String>) {
+    override fun premain(args: List<String>) {
         if (!checkArguments(args)) {
             System.err.println(usageMessage)
             exitProcess(1)
         }
     }
 
-    override fun processExternalCommandLineAsync(args: Array<String>, currentDirectory: String?): Future<out CliResult> {
+    override fun processExternalCommandLineAsync(args: MutableList<String>, currentDirectory: String?): Future<CliResult> {
         if (!checkArguments(args)) {
             return CliResult.error(1, usageMessage)
         }
@@ -56,7 +56,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         }
     }
 
-    override fun processCommand(args: Array<out String>, currentDirectory: String?): Future<out CliResult> {
+    override fun processCommand(args: MutableList<String>, currentDirectory: String?): Future<CliResult> {
         // TODO support comma-separated list of arguments?
         return try {
             val suite = findSuite(args).first()
@@ -66,7 +66,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
             } finally {
                 suite.tearDown()
             }
-            CliResult.ok()
+            CliResult.OK_FUTURE
         } catch (_: IllegalUserArgumentException) {
             CliResult.error(2, "Invalid command line arguments")
         } catch (e: Exception) {
@@ -75,7 +75,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         }
     }
 
-    private fun subArgs(args: Array<out String>): List<String> = if (args.size == 2) emptyList<String>() else args.toList().subList(2, args.size - 1)
+    private fun subArgs(args: List<out String>): List<String> = if (args.size == 2) emptyList<String>() else args.toList().subList(2, args.size - 1)
 
 }
 
