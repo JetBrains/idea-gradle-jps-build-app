@@ -11,10 +11,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class TNListener implements ExternalSystemTaskNotificationListener {
-    @Override
-    public void onQueued(@NotNull ExternalSystemTaskId id, String workingDir) {
-
-    }
 
     @Override
     public void onStart(@NotNull ExternalSystemTaskId id, String workingDir) {
