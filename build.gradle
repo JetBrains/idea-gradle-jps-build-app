@@ -74,6 +74,8 @@ tasks.getByName('runIde') {
     if ("true" == System.getenv("enable_serial_gc")) {
         jvmArgs = ['-XX:+UseSerialGC', '-XX:MinHeapFreeRatio=1', '-XX:MaxHeapFreeRatio=99']
     }
+
+    jbrVersion = '8u202b1483.24'
 }
 
 group 'org.jetbrains'
