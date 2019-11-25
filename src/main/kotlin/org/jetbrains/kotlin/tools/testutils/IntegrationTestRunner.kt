@@ -1,9 +1,9 @@
 package org.jetbrains.kotlin.tools.testutils
 
-import com.intellij.ide.CliResult
 import com.intellij.openapi.application.ApplicationStarterBase
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.text.StringUtil
 import org.reflections.Reflections
-import java.util.concurrent.Future
 import kotlin.system.exitProcess
 
 class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
@@ -43,22 +43,25 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         }
     }
 
-    override fun processExternalCommandLineAsync(args: Array<String>, currentDirectory: String?): Future<out CliResult> {
+    override fun processExternalCommandLine(args: Array<String>, currentDirectory: String?) {
         if (!checkArguments(args)) {
-            return CliResult.error(1, usageMessage)
+            Messages.showMessageDialog(usageMessage, StringUtil.toTitleCase(commandName), Messages.getInformationIcon())
+            return
         }
-        return try {
+        try {
             processCommand(args, currentDirectory)
         } catch (e: Exception) {
-            CliResult.error(2, String.format("Error showing %s: %s", commandName, e.message))
+            Messages.showMessageDialog(String.format("Error showing %s: %s", commandName, e.message),
+                    StringUtil.toTitleCase(commandName),
+                    Messages.getErrorIcon())
         } finally {
             saveAll()
         }
     }
 
-    override fun processCommand(args: Array<out String>, currentDirectory: String?): Future<out CliResult> {
+    override fun processCommand(args: Array<out String>, currentDirectory: String?) {
         // TODO support comma-separated list of arguments?
-        return try {
+        try {
             val suite = findSuite(args).first()
             suite.setUp()
             try {
@@ -66,12 +69,14 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
             } finally {
                 suite.tearDown()
             }
-            CliResult.ok()
         } catch (_: IllegalUserArgumentException) {
-            CliResult.error(2, "Invalid command line arguments")
+            System.err.println("Invalid command line arguments")
+            System.err.println(usageMessage)
+            exitProcess(2)
         } catch (e: Exception) {
+            System.err.println("Failed to run ${args[1]}")
             e.printStackTrace()
-            CliResult.error(3,"Failed to run ${args[1]}")
+            exitProcess(1)
         }
     }
 
