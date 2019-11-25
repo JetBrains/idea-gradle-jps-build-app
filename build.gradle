@@ -24,9 +24,6 @@ apply plugin: 'org.jetbrains.intellij'
 repositories {
     mavenLocal()
     mavenCentral()
-    maven {
-        url 'https://www.jetbrains.com/intellij-repository/snapshots'
-    }
 }
 
 dependencies {
@@ -36,7 +33,7 @@ dependencies {
 intellij {
     def ideVersion = System.getenv("ide_version")
     if (ideVersion == null) {
-      ideVersion = 'IC-2019.3'
+      ideVersion = 'IC-2019.2'
     } else {
       println("Using IDE: $ideVersion")
     }
