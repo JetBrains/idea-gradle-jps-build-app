@@ -51,10 +51,21 @@ intellij {
     sandboxDirectory = "$project.rootDir/local"
 }
 
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
 tasks.getByName('runIde') {
     def workingDir = System.getenv("working_dir")
     if (workingDir == null) {
-        workingDir = "../jps"
+        workingDir = "/Users/Sergey.Rostov/kotlinu"
     }
     def testName = System.getenv("test_name")
     if (testName == null) {
@@ -66,7 +77,8 @@ tasks.getByName('runIde') {
     }
     def absoluteWorkingDir = new File(workingDir).getCanonicalFile().getAbsolutePath().toString()
     println("Executing test [$testName] in folder [$absoluteWorkingDir]")
-    systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_18')]
+    def JDK_18 = "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
+    systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': JDK_18]
     args = ['runIntegrationTest', testName]
     
     maxHeapSize = heapSize
