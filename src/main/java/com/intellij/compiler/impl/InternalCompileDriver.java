@@ -210,10 +210,10 @@ public class InternalCompileDriver {
             builderParams = new HashMap<>();
         }
         else {
-            final Map<Key, Object> exported = scope.exportUserData();
+            final Map<Key<?>, Object> exported = scope.exportUserData();
             if (!exported.isEmpty()) {
                 builderParams = new HashMap<>();
-                for (Map.Entry<Key, Object> entry : exported.entrySet()) {
+                for (Map.Entry<Key<?>, Object> entry : exported.entrySet()) {
                     final String _key = entry.getKey().toString();
                     final String _value = entry.getValue().toString();
                     builderParams.put(_key, _value);
@@ -563,9 +563,10 @@ public class InternalCompileDriver {
             if (statusBar != null) {
                 statusBar.setInfo("");
             }
-            if (progressIndicator instanceof CompilerTask) {
-                ApplicationManager.getApplication().invokeLater(((CompilerTask)progressIndicator)::showCompilerContent);
-            }
+            // Remove deprecated in 2020.1.2
+//            if (progressIndicator instanceof CompilerTask) {
+//                ApplicationManager.getApplication().invokeLater(((CompilerTask)progressIndicator)::showCompilerContent);
+//            }
         }
         return true;
     }
