@@ -209,8 +209,7 @@ fun buildProject(project: Project?): Boolean {
             }
         }
 
-        printMessage("Enable portable build caches")
-        printMessage(Registry.get("compiler.build.portable.caches").toString())
+        printMessage("Enable portable build caches for idea 201")
         BuildManager.getInstance().isGeneratePortableCachesEnabled = true
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
