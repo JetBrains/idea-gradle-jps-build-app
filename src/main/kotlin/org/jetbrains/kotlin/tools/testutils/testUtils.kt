@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.tools.testutils
 import com.intellij.compiler.CompilerConfigurationImpl
 import com.intellij.compiler.CompilerWorkspaceConfiguration
 import com.intellij.compiler.impl.InternalCompileDriver
+import com.intellij.compiler.server.BuildManager
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
@@ -26,6 +27,8 @@ import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
@@ -206,6 +209,10 @@ fun buildProject(project: Project?): Boolean {
             }
         }
 
+        printMessage("Enable portable build caches")
+        printMessage(Registry.get("compiler.build.portable.caches").toString())
+        BuildManager.getInstance().isGeneratePortableCachesEnabled = true
+
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
 
@@ -216,6 +223,15 @@ fun buildProject(project: Project?): Boolean {
                 break
             }
             printProgress("Compilation status: Errors: ${compileContext.getMessages(CompilerMessageCategory.ERROR).size}. Warnings: ${compileContext.getMessages(CompilerMessageCategory.WARNING).size}.")
+        }
+
+        // Copy compile-server folder with portable caches to the root for further uploading
+        val cachesFolder: File = BuildManager.getInstance().getProjectSystemDirectory(project)!!
+        val basePath = File(project.basePath!!)
+        if (basePath.exists()) {
+            val newCacheFolder = File(project.basePath!! + "/compile-server")
+            FileUtil.createDirectory(newCacheFolder)
+            FileUtil.moveDirWithContent(cachesFolder, newCacheFolder)
         }
 
         if (errorsCount > 0 || abortedStatus) {
