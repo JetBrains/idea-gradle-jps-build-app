@@ -163,6 +163,7 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     projectSettings.storeProjectFilesExternally = ThreeState.NO
     //projectSettings.withQualifiedModuleNames()
     projectSettings.isUseQualifiedModuleNames = false
+    projectSettings.isResolveModulePerSourceSet = true
 
     val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
     @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
