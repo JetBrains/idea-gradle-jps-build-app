@@ -28,10 +28,10 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
+import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
@@ -156,20 +156,21 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
 
 fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     //TODO: set default mode? DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
-    val projectSettings = GradleProjectSettings()
-    projectSettings.externalProjectPath = path
-    projectSettings.delegatedBuild = delegationMode
-    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
-    projectSettings.storeProjectFilesExternally = ThreeState.NO
-    //projectSettings.withQualifiedModuleNames()
-    projectSettings.isUseQualifiedModuleNames = false
-    projectSettings.isResolveModulePerSourceSet = true
-
-    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
-    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
-    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
-
-    systemSettings.linkProject(projectSettings)
+//    val projectSettings = GradleProjectSettings()
+//    projectSettings.externalProjectPath = path
+//    projectSettings.delegatedBuild = delegationMode
+//    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
+//    projectSettings.storeProjectFilesExternally = ThreeState.NO
+//    projectSettings.withQualifiedModuleNames()
+//    //projectSettings.isUseQualifiedModuleNames = true
+//    projectSettings.isResolveModulePerSourceSet = true
+//
+//    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
+//    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
+//    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
+//
+//    systemSettings.linkProject(projectSettings)
+    linkAndRefreshGradleProject(path, project)
 }
 
 fun buildProject(project: Project?): Boolean {
