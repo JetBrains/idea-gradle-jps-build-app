@@ -233,7 +233,7 @@ fun buildProject(project: Project?): Boolean {
         if (basePath.exists()) {
             val newCacheFolder = File(project.basePath!! + "/compile-server")
             FileUtil.createDirectory(newCacheFolder)
-            FileUtil.moveDirWithContent(cachesFolder, newCacheFolder)
+            FileUtil.copyDir(cachesFolder, newCacheFolder)
         }
 
         if (errorsCount > 0 || abortedStatus) {
