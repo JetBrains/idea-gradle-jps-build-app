@@ -563,10 +563,6 @@ public class InternalCompileDriver {
             if (statusBar != null) {
                 statusBar.setInfo("");
             }
-            // Remove deprecated in 2020.1.2
-//            if (progressIndicator instanceof CompilerTask) {
-//                ApplicationManager.getApplication().invokeLater(((CompilerTask)progressIndicator)::showCompilerContent);
-//            }
         }
         return true;
     }

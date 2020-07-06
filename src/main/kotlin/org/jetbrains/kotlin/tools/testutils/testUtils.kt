@@ -11,21 +11,13 @@ import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.compiler.CompileStatusNotification
 import com.intellij.openapi.compiler.CompilerMessageCategory
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.externalSystem.action.RefreshAllExternalProjectsAction
-import com.intellij.openapi.externalSystem.importing.ImportSpec
-import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
 import com.intellij.openapi.externalSystem.model.DataNode
-import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
-import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotificationListenerAdapter
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
-import com.intellij.openapi.externalSystem.service.notification.ExternalSystemProgressNotificationManager
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
-import com.intellij.openapi.externalSystem.settings.ExternalSystemSettingsListenerAdapter
-import com.intellij.openapi.externalSystem.statistics.ExternalSystemActionsCollector
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -35,14 +27,10 @@ import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.Couple
-import com.intellij.openapi.util.Ref
-import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
-import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
-import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
@@ -113,76 +101,6 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
     reportStatistics("used_memory_before_import$metricsSuffixName", getUsedMemory().toString())
     reportStatistics("total_memory_before_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
 
-//    val externalSystemId = ProjectSystemId("GRADLE")
-//    ExternalSystemUtil.refreshProjects(ImportSpecBuilder(project, externalSystemId).forceWhenUptodate(true))
-
-//
-//
-//
-//    ExternalSystemApiUtil.subscribe(
-//            project,
-//            GradleConstants.SYSTEM_ID,
-//            object : ExternalSystemSettingsListenerAdapter<ExternalProjectSettings>() {
-//                override fun onProjectsLinked(settings: Collection<ExternalProjectSettings>) {
-//                    val item = ContainerUtil.getFirstItem<Any>(settings)
-//                    if (item is GradleProjectSettings) {
-//                        item.gradleJvm = "Gradle JDK"
-//                    }
-//                }
-//            })
-//    var myProjectSettings = GradleProjectSettings().apply {
-//        this.isUseQualifiedModuleNames = false
-//    }
-//    val systemSettings = ExternalSystemApiUtil.getSettings(project, getExternalSystemId())
-//    val projectSettings: ExternalProjectSettings = myProjectSettings
-//    projectSettings.setExternalProjectPath(path)
-////    //noinspection unchecked
-////    val projects = HashSet<ExternalProjectSettings?>(systemSettings.getLinkedProjectsSettings())
-////    projects.remove(projectSettings)
-////    projects.add(projectSettings)
-////    //noinspection unchecked
-////    systemSettings.setLinkedProjectsSettings(projects)
-//
-//    val error = Ref.create<Couple<String?>>()
-//    var importSpec: ImportSpec = createImportSpec(project)
-//    val callback = importSpec.callback
-//    if (callback == null) {
-//        importSpec = ImportSpecBuilder(importSpec)
-//                .createDirectoriesForEmptyContentRoots()
-//                .callback(object : ExternalProjectRefreshCallback {
-//                    override fun onSuccess(externalProject: DataNode<ProjectData>?) {
-//                        if (externalProject == null) {
-//                            System.err.println("Got null External project after import")
-//                            return
-//                        }
-//                        ServiceManager.getService(ProjectDataManager::class.java).importData(externalProject, project, true)
-//                        println("External project was successfully imported")
-//                    }
-//
-//                    override fun onFailure(errorMessage: String, errorDetails: String?) {
-//                        error.set(Couple.of(errorMessage, errorDetails))
-//                    }
-//                }).build()
-//    }
-//
-//    val notificationManager = ServiceManager.getService(ExternalSystemProgressNotificationManager::class.java)
-//    val listener: ExternalSystemTaskNotificationListenerAdapter = object : ExternalSystemTaskNotificationListenerAdapter() {
-//        override fun onTaskOutput(id: ExternalSystemTaskId, text: String, stdOut: Boolean) {
-//            if (StringUtil.isEmptyOrSpaces(text)) return
-//            (if (stdOut) System.out else System.err).print(text)
-//        }
-//    }
-//    notificationManager.addNotificationListener(listener)
-//    try {
-//        ExternalSystemUtil.refreshProjects(importSpec)
-//    } finally {
-//        notificationManager.removeNotificationListener(listener)
-//    }
-//
-//    if (!error.isNull) {
-//        handleImportFailure(error.get().first, error.get().second)
-//    }
-
     val refreshCallback = object : ExternalProjectRefreshCallback {
         override fun onSuccess(externalProject: DataNode<ProjectData>?) {
             try {
@@ -235,19 +153,6 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
     return project
 }
 
-fun getExternalSystemId(): ProjectSystemId = GradleConstants.SYSTEM_ID
-fun createImportSpec(project: Project): ImportSpec {
-    val importSpecBuilder = ImportSpecBuilder(project, getExternalSystemId())
-            .use(ProgressExecutionMode.MODAL_SYNC)
-            .forceWhenUptodate()
-    return importSpecBuilder.build()
-}
-fun handleImportFailure(errorMessage: String?, errorDetails: String?) {
-    var failureMsg = "Import failed: $errorMessage"
-    if (StringUtil.isNotEmpty(errorDetails)) {
-        failureMsg += "\nError details: \n$errorDetails"
-    }
-}
 fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     //TODO: set default mode? DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
     val projectSettings = GradleProjectSettings()
@@ -266,6 +171,7 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
 //    systemSettings.linkProject(projectSettings)
     //linkAndRefreshGradleProject(path, project)
 
+    systemSettings.linkProject(projectSettings)
 }
 
 fun buildProject(project: Project?): Boolean {
@@ -308,7 +214,7 @@ fun buildProject(project: Project?): Boolean {
         }
 
         printMessage("Enable portable build caches for idea 201")
-        BuildManager.getInstance().isGeneratePortableCachesEnabled = true
+        //BuildManager.getInstance().isGeneratePortableCachesEnabled = true
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
