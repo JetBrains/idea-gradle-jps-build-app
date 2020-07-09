@@ -44,7 +44,9 @@ intellij {
 
     def idePluginsList = System.getenv("ide_plugins")
     if (idePluginsList == null) {
-      idePluginsList = 'java,gradle,org.jetbrains.kotlin:1.4.20-dev-1530-IJ2020.1-1'
+      idePluginsList = 'java,gradle,org.jetbrains.kotlin:1.3.72-release-IJ2020.1-1'
+        //idePluginsList = 'java,gradle,org.jetbrains.kotlin:1.4.20-dev-1530-IJ2020.1-1'
+
     } else {
       println("Installing the following plugins: $idePluginsList")
     }
@@ -57,7 +59,9 @@ intellij {
 tasks.getByName('runIde') {
     def workingDir = System.getenv("working_dir")
     if (workingDir == null) {
-        workingDir = "../../kotlin_try_build21/kotlin"
+        workingDir = "../jps"
+        //workingDir = "../../kotlin_try_build21/kotlin"
+
     }
     def testName = System.getenv("test_name")
     if (testName == null) {

@@ -17,8 +17,6 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
-import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
-import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
@@ -29,10 +27,9 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.util.ThreeState
+import org.jetbrains.jps.api.GlobalOptions
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
-import org.jetbrains.plugins.gradle.settings.DistributionType
-import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
+import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.io.File
 import java.lang.reflect.Array
@@ -155,23 +152,24 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
 
 fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     //TODO: set default mode? DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
-    val projectSettings = GradleProjectSettings()
-    projectSettings.externalProjectPath = path
-    projectSettings.delegatedBuild = delegationMode
-    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
-    projectSettings.storeProjectFilesExternally = ThreeState.NO
-    projectSettings.withQualifiedModuleNames()
-    //projectSettings.isUseQualifiedModuleNames = true
-    //projectSettings.isResolveModulePerSourceSet = true
-
-    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
-    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
-    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
+//    val projectSettings = GradleProjectSettings()
+//    projectSettings.externalProjectPath = path
+//    projectSettings.delegatedBuild = delegationMode
+//    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
+//    projectSettings.storeProjectFilesExternally = ThreeState.NO
+//    projectSettings.withQualifiedModuleNames()
+//    //projectSettings.isUseQualifiedModuleNames = true
+//    //projectSettings.isResolveModulePerSourceSet = true
+//
+//    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
+//    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
+//    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
 //
 //    systemSettings.linkProject(projectSettings)
-    //linkAndRefreshGradleProject(path, project)
+    printProgress("=================================")
+    linkAndRefreshGradleProject(path, project)
 
-    systemSettings.linkProject(projectSettings)
+    //systemSettings.linkProject(projectSettings)
 }
 
 fun buildProject(project: Project?): Boolean {
@@ -214,11 +212,14 @@ fun buildProject(project: Project?): Boolean {
         }
 
         printMessage("Enable portable build caches for idea 201")
-        //BuildManager.getInstance().isGeneratePortableCachesEnabled = true
+        BuildManager.getInstance().isGeneratePortableCachesEnabled = true
+        //Delete this
+        //System.setProperty(GlobalOptions.REBUILD_ON_DEPENDENCY_CHANGE_OPTION, "true")
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
-
+        //CompilerWorkspaceConfiguration.getInstance(project).COMPILER_PROCESS_ADDITIONAL_VM_OPTIONS = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=6080"
+        CompilerWorkspaceConfiguration.getInstance(project).REBUILD_ON_DEPENDENCY_CHANGE = false
         val compileContext = InternalCompileDriver(project).rebuild(callback)
         while (!finishedLautch.await(1, TimeUnit.MINUTES)) {
             if (!compileContext.progressIndicator.isRunning) {
@@ -229,13 +230,13 @@ fun buildProject(project: Project?): Boolean {
         }
 
         // Copy compile-server folder with portable caches to the root for further uploading
-//        val cachesFolder: File = BuildManager.getInstance().getProjectSystemDirectory(project)!!
-//        val basePath = File(project.basePath!!)
-//        if (basePath.exists()) {
-//            val newCacheFolder = File(project.basePath!! + "/compile-server")
-//            FileUtil.createDirectory(newCacheFolder)
-//            FileUtil.copyDir(cachesFolder, newCacheFolder)
-//        }
+        val cachesFolder = BuildManager.getInstance().getProjectSystemDirectory(project)!!
+        val basePath = File(project.basePath!!)
+        if (basePath.exists()) {
+            val newCacheFolder = File(project.basePath!! + "/compile-server")
+            FileUtil.createDirectory(newCacheFolder)
+            FileUtil.copyDir(cachesFolder, newCacheFolder)
+        }
 
         if (errorsCount > 0 || abortedStatus) {
             finishOperation(OperationType.COMPILATION, "Compile project with JPS", "Compilation failed with $errorsCount errors")
