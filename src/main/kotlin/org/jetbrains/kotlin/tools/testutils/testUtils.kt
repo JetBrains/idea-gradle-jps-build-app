@@ -128,16 +128,16 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
             finishOperation(OperationType.TEST, "Import project", "Filed to import project: $errorMessage. Details: $errorDetails")
         }
     }
-//    ExternalSystemUtil.refreshProject(
-//            project,
-//            GradleConstants.SYSTEM_ID,
-//            path,
-//            refreshCallback,
-//            false,
-//            ProgressExecutionMode.MODAL_SYNC,
-//            true
-//    )
-    linkAndRefreshGradleProject(path, project)
+    ExternalSystemUtil.refreshProject(
+            project,
+            GradleConstants.SYSTEM_ID,
+            path,
+            refreshCallback,
+            false,
+            ProgressExecutionMode.MODAL_SYNC,
+            true
+    )
+    //linkAndRefreshGradleProject(path, project)
     reportStatistics("used_memory_after_import$metricsSuffixName", getUsedMemory().toString())
     reportStatistics("total_memory_after_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
     System.gc()
@@ -158,24 +158,24 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
 
 fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     //TODO: set default mode? DefaultGradleProjectSettings.getInstance(project).isDelegatedBuild = false
-    val projectSettings = GradleProjectSettings()
-    projectSettings.externalProjectPath = path
-    projectSettings.delegatedBuild = delegationMode
-    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
-    projectSettings.storeProjectFilesExternally = ThreeState.NO
-    projectSettings.withQualifiedModuleNames()
-    //projectSettings.isUseQualifiedModuleNames = true
-    //projectSettings.isResolveModulePerSourceSet = true
-
-    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
-    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
-    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
-
-    systemSettings.linkProject(projectSettings)
+//    val projectSettings = GradleProjectSettings()
+//    projectSettings.externalProjectPath = path
+//    projectSettings.delegatedBuild = delegationMode
+//    projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
+//    projectSettings.storeProjectFilesExternally = ThreeState.NO
+//    projectSettings.withQualifiedModuleNames()
+//    //projectSettings.isUseQualifiedModuleNames = true
+//    //projectSettings.isResolveModulePerSourceSet = true
+//
+//    val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)
+//    @Suppress("UNCHECKED_CAST") val linkedSettings: Collection<ExternalProjectSettings> = systemSettings.getLinkedProjectsSettings() as Collection<ExternalProjectSettings>
+//    linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
+//
+//    systemSettings.linkProject(projectSettings)
 
     printProgress("=================================")
 
-    //linkAndRefreshGradleProject(path, project)
+    linkAndRefreshGradleProject(path, project)
 }
 
 fun buildProject(project: Project?): Boolean {
@@ -224,7 +224,8 @@ fun buildProject(project: Project?): Boolean {
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
-        //CompilerWorkspaceConfiguration.getInstance(project).COMPILER_PROCESS_ADDITIONAL_VM_OPTIONS = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=6086"
+        //CompilerWorkspaceConfiguration.getInstance(project).COMPILER_PROCESS_ADDITIONAL_VM_OPTIONS = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=6092"
+
         //CompilerWorkspaceConfiguration.getInstance(project).REBUILD_ON_DEPENDENCY_CHANGE = false
         val compileContext = InternalCompileDriver(project).rebuild(callback)
         while (!finishedLautch.await(1, TimeUnit.MINUTES)) {
