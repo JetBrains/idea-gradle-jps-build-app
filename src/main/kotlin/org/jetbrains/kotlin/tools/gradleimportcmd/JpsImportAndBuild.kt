@@ -2,6 +2,7 @@ package org.jetbrains.kotlin.tools.gradleimportcmd
 
 import com.intellij.compiler.server.BuildManager
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.util.SystemProperties
 import org.jetbrains.jps.cmdline.LogSetup
 import org.jetbrains.kotlin.tools.projectWizard.core.parseAs
 import org.jetbrains.kotlin.tools.testutils.buildProject
@@ -15,9 +16,11 @@ import java.util.*
 @Suppress("unused")
 class JpsImportAndBuild : ImportAndSave() {
     override fun run(args: List<String>, workingDir: String?) {
-        print("==================================================================")
-        val qwe = System.getProperty("system.jps.backward.ref.index.qwe")!!.toBoolean()
-        print(qwe)
+        print("============================================")
+        val asd: Boolean = SystemProperties.getBooleanProperty("system.jps.backward.ref.index.qwe", false)
+        print(asd)
+        print(">>>>>")
+        //SystemProperties.getBooleanProperty("intellij.build.incremental.compilation", false)
         //enableDebugLogging()
         val logDirectory = BuildManager.getBuildLogDirectory()
         FileUtil.delete(logDirectory)
