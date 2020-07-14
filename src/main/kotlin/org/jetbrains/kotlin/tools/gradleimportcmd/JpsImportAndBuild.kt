@@ -23,6 +23,8 @@ class JpsImportAndBuild : ImportAndSave() {
         print("============================================")
         print(SystemProperties.getBooleanProperty("system.jps.backward.ref.index.qwe", false))
         print(System.getProperty("system.jps.backward.ref.index.qwe", "---"))
+        print("<<<<<")
+        print(System.getProperty("jps.backward.ref.index.qwe"))
         print(">>>>>")
         //SystemProperties.getBooleanProperty("intellij.build.incremental.compilation", false)
         //enableDebugLogging()
