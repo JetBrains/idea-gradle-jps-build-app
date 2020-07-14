@@ -17,8 +17,8 @@ import java.util.*
 class JpsImportAndBuild : ImportAndSave() {
     override fun run(args: List<String>, workingDir: String?) {
         print("============================================")
-        val asd: Boolean = SystemProperties.getBooleanProperty("system.jps.backward.ref.index.qwe", false)
-        print(asd)
+        print(SystemProperties.getBooleanProperty("jps.backward.ref.index.qwe", false))
+        print(System.getProperty("jps.backward.ref.index.qwe", "---"))
         print(">>>>>")
         //SystemProperties.getBooleanProperty("intellij.build.incremental.compilation", false)
         //enableDebugLogging()
