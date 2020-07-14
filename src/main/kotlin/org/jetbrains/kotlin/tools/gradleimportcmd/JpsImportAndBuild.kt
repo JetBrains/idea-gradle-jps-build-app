@@ -17,15 +17,15 @@ import java.util.*
 class JpsImportAndBuild : ImportAndSave() {
     override fun run(args: List<String>, workingDir: String?) {
         print("============================================")
-        print(SystemProperties.getBooleanProperty("jps.backward.ref.index.qwe", false))
-        print(System.getProperty("jps.backward.ref.index.qwe", "---"))
+        print(System.getProperty("qwe", "---"))
         print(">>>>>")
         print("============================================")
-        print(SystemProperties.getBooleanProperty("system.jps.backward.ref.index.qwe", false))
-        print(System.getProperty("system.jps.backward.ref.index.qwe", "---"))
+        print(System.getProperty("qwe"))
         print("<<<<<")
-        print(System.getProperty("jps.backward.ref.index.qwe"))
+
+        print(System.getProperties())
         print(">>>>>")
+
         //SystemProperties.getBooleanProperty("intellij.build.incremental.compilation", false)
         //enableDebugLogging()
         val logDirectory = BuildManager.getBuildLogDirectory()
