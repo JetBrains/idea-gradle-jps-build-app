@@ -31,6 +31,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.jps.api.GlobalOptions
+import org.jetbrains.kotlin.tools.cachesuploader.CompilationOutputsUploader
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
 import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.settings.DistributionType
@@ -252,6 +253,11 @@ fun buildProject(project: Project?): Boolean {
         }
     }
     return true
+}
+
+fun uploadCaches(project: Project?) {
+    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/"
+    CompilationOutputsUploader(remoteCacheUrl, project?.basePath!!).upload()
 }
 
 private fun testExternalSubsystemForProxyMemoryLeak(externalProject: DataNode<ProjectData>) {

@@ -1,0 +1,195 @@
+package org.jetbrains.kotlin.tools.cachesuploader
+
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.gson.Gson
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.StreamUtil
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.io.ZipUtil
+import org.apache.http.client.methods.CloseableHttpResponse
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.entity.ContentType
+import org.apache.http.util.EntityUtils
+import org.jetbrains.kotlin.tools.testutils.MessageStatus
+import org.jetbrains.kotlin.tools.testutils.printMessage
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipOutputStream
+
+class CompilationOutputsUploader(private val remoteCacheUrl: String, private val projectPath: String) {
+    private val projectFileStorage = ProjectFileStorage(projectPath)
+    private val kotlinRepoUrl = "git@github.com:JetBrains/kotlin.git"
+
+    fun upload() {
+        val uploader = JpsCompilationPartsUploader(remoteCacheUrl)
+
+        val executorThreadsCount = Runtime.getRuntime().availableProcessors()
+        printMessage("$executorThreadsCount threads will be used for upload", MessageStatus.NORMAL)
+        val executor = NamedThreadPoolExecutor("Jps Output Upload", executorThreadsCount)
+        executor.prestartAllCoreThreads()
+
+        try {
+            val commitHash = getCommitHash() ?: throw Exception("There is no file with git last commit hash")
+
+            executor.submit {
+                // Upload jps caches
+                var sourcePath = "caches/$commitHash"
+                if (uploader.isExist(sourcePath)) return@submit
+                val zipFile = File(projectPath, commitHash)
+                zipBinaryData(zipFile, projectFileStorage.getCompileServerFolder())
+                uploader.upload(sourcePath, zipFile)
+                FileUtil.delete(zipFile)
+
+                // Upload compilation metadata
+                sourcePath = "metadata/$commitHash"
+                if (uploader.isExist(sourcePath)) return@submit
+                uploader.upload(sourcePath, projectFileStorage.getTargetSourcesState())
+                return@submit
+            }
+
+            val targetSourcesStateFile = projectFileStorage.getTargetSourcesState()
+
+            val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            val targetSourcesState = objectMapper.readValue(targetSourcesStateFile.readText(), object : TypeReference<Map<String, Map<String, Map<String, String>>>>() {})
+            uploadCompilationOutputs(targetSourcesState, uploader, executor)
+
+            executor.waitForAllComplete(/*messages*/)
+            //executor.reportErrors(messages)
+            //messages.reportStatisticValue("Compilation upload time, ms", String.valueOf(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)))
+
+            updateCommitHistory(uploader, commitHash)
+        } catch (e: Exception){
+            println(e)
+        }
+        finally {
+            executor.close()
+            StreamUtil.closeStream(uploader)
+        }
+    }
+
+    private fun uploadCompilationOutputs(currentSourcesState: Map<String, Map<String, Map<String, String>>>,
+                                         uploader: JpsCompilationPartsUploader,
+                                         executor: NamedThreadPoolExecutor) {
+        SourcesStateProcessor(currentSourcesState, projectPath).getAllCompilationOutputs().forEach {
+            uploadCompilationOutput(it, uploader, executor)
+        }
+    }
+
+    private fun uploadCompilationOutput(compilationOutput: CompilationOutput, uploader: JpsCompilationPartsUploader, executor: NamedThreadPoolExecutor) {
+        executor.submit {
+            val sourcePath = "${compilationOutput.type}/${compilationOutput.name}/${compilationOutput.hash}"
+            if (uploader.isExist(sourcePath)) return@submit
+            val outputFolder = File(compilationOutput.path)
+            val zipFile = File(outputFolder.parent, compilationOutput.hash)
+            zipBinaryData(zipFile, outputFolder)
+            uploader.upload(sourcePath, zipFile)
+            FileUtil.delete(zipFile)
+        }
+    }
+
+    private fun zipBinaryData(zipFile: File, dir: File) {
+        val zos = ZipOutputStream(FileOutputStream(zipFile))
+        ZipUtil.addDirToZipRecursively(zos, null, dir, "", null, null)
+        zos.close()
+    }
+
+    private fun updateCommitHistory(uploader: JpsCompilationPartsUploader, commitHash: String) {
+        if (uploader.isExist("commit_history.json")) {
+            val json = uploader.getAsString("commit_history.json")
+            val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            val commitHistory = objectMapper.readValue(json, object : TypeReference<MutableMap<String?, Set<String?>?>?>() {})
+            commitHistory?.set(kotlinRepoUrl, commitHistory[kotlinRepoUrl]?.union(listOf(commitHash)))
+            val commitHistoryLocalFile = File(projectPath, "commit_history.json")
+            commitHistoryLocalFile.writeText(Gson().toJson(commitHistory))
+            uploader.upload("commit_history.json", commitHistoryLocalFile)
+        }
+        //TODO else
+    //        else {
+    //            new CommitsHistory([:])
+    //        }
+    //        uploader.upload("commit_history.json", writeCommitHistory(commitsHistory))
+    //
+    //        Gson().fromJson(json, JSON_TYPE) as Map<String, Set<String>>
+    //        val remotePerCommitHash: Map<String, String> = HashMap()
+    //        remotePerCommitHash["asd"] = commitHash
+    //        if (remotePerCommitHash.size() == 1) return
+    //        val commitHistory  = HashMap<String, List<String>>()
+    //        if (uploader.isExist(commitHistoryFile)) {
+    //            val content = uploader.getAsString(commitHistoryFile)
+    //            if (!content.isEmpty()) {
+    //                val type: Type = TypeToken<Map<String, List<String>>>(){}.getType();
+    //                commitHistory = Gson().fromJson(content, type) as Map<String, List<String>>
+    //            }
+    //        }
+    //
+    //        remotePerCommitHash.each { key, value ->
+    //            def listOfCommits = commitHistory.get(key)
+    //            if (listOfCommits == null) {
+    //                def newList = new ArrayList()
+    //                newList.add(value)
+    //                commitHistory.put(key, newList)
+    //            }
+    //            else {
+    //                listOfCommits.add(value)
+    //            }
+    //        }
+    //
+    //        // Upload and publish file with commits history
+    //        val jsonAsString = Gson().toJson(commitHistory)
+    //        val file = File("$agentPersistentStorage/$commitHistoryFile")
+    //        file.write(jsonAsString)
+    //        //messages.artifactBuilt(file.absolutePath)
+    //        uploader.upload(commitHistoryFile, file)
+    //        FileUtil.delete(file)
+    }
+
+    private fun getCommitHash(): String? {
+        File(projectPath, "git.branch").also {
+            return if(it.exists()) {
+                it.readText()
+            } else {
+                null
+            }
+        }
+    }
+
+    class JpsCompilationPartsUploader(serverUrl: String): CompilationPartsUploader(serverUrl) {
+
+        fun isExist(path: String): Boolean {
+            val code: Int = doHead(path)
+            if (code == 200) {
+                printMessage("File '$path' already exist on server, nothing to upload", MessageStatus.NORMAL)
+                return true
+            }
+            if (code != 404) {
+                error("HEAD $path responded with unexpected $code")
+            }
+            return false
+        }
+
+        fun getAsString(path: String): String {
+            var response: CloseableHttpResponse? = null
+            try {
+                val url: String = myServerUrl + StringUtil.trimStart(path, "/")
+                printMessage("GET $url", MessageStatus.NORMAL)
+
+                val request = HttpGet(url)
+                response = myHttpClient.execute(request)
+
+                return EntityUtils.toString(response.getEntity(), ContentType.APPLICATION_OCTET_STREAM.charset)
+            }
+            catch (e: Exception) {
+                throw Exception("Failed to GET $path: ", e)
+            }
+            finally {
+                StreamUtil.closeStream(response)
+            }
+        }
+
+        fun upload(path: String, file: File): Boolean {
+            return super.upload(path, file, false)
+        }
+    }
+}

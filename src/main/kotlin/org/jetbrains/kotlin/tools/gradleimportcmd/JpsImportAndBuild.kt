@@ -3,29 +3,22 @@ package org.jetbrains.kotlin.tools.gradleimportcmd
 import com.intellij.compiler.server.BuildManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.SystemProperties
+import com.intellij.util.io.ZipUtil
 import org.jetbrains.jps.cmdline.LogSetup
 import org.jetbrains.kotlin.tools.projectWizard.core.parseAs
 import org.jetbrains.kotlin.tools.testutils.buildProject
 import org.jetbrains.kotlin.tools.testutils.importProject
+import org.jetbrains.kotlin.tools.testutils.uploadCaches
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.*
+import java.util.zip.ZipOutputStream
 
 @Suppress("unused")
 class JpsImportAndBuild : ImportAndSave() {
     override fun run(args: List<String>, workingDir: String?) {
-        print("============================================")
-        print(System.getProperty("qwe", "---"))
-        print(">>>>>")
-        print("============================================")
-        print(System.getProperty("qwe"))
-        print("<<<<<")
-
-        print(System.getProperties())
-        print(">>>>>")
-
         //SystemProperties.getBooleanProperty("intellij.build.incremental.compilation", false)
         //enableDebugLogging()
         val logDirectory = BuildManager.getBuildLogDirectory()
@@ -40,6 +33,7 @@ class JpsImportAndBuild : ImportAndSave() {
         importProject(projectPath, jdkPath, false)?.let {
             //setDelegationMode(projectPath, it, true)
             buildProject(it)
+            uploadCaches(it)
         }
     }
 
