@@ -2,6 +2,7 @@
 package com.intellij.compiler.impl;
 
 import com.intellij.compiler.*;
+import com.intellij.compiler.progress.CompilerMessagesService;
 import com.intellij.compiler.progress.CompilerTask;
 import com.intellij.compiler.server.BuildManager;
 import com.intellij.compiler.server.DefaultMessageHandler;
@@ -228,7 +229,7 @@ public class InternalCompileDriver {
         }
 
         final MessageBus messageBus = myProject.getMessageBus();
-        final MultiMap<String, Artifact> outputToArtifact = ArtifactCompilerUtil.createOutputToArtifactMap(myProject);
+        final Map<String, List<Artifact>> outputToArtifact = ArtifactCompilerUtil.createOutputToArtifactMap(myProject);
         final BuildManager buildManager = BuildManager.getInstance();
         buildManager.cancelAutoMakeTasks(myProject);
         return buildManager.scheduleBuild(myProject, compileContext.isRebuild(), compileContext.isMake(), onlyCheckUpToDate, scopes, paths, builderParams, new DefaultMessageHandler(myProject) {
@@ -711,7 +712,7 @@ public class InternalCompileDriver {
         @Override
         protected void hyperlinkActivated(@NotNull Notification notification, @NotNull HyperlinkEvent e) {
             final Project project = myProjectRef.get();
-            if (project != null && !project.isDisposed() && CompilerTask.showCompilerContent(project, myContentId)) {
+            if (project != null && !project.isDisposed() && CompilerMessagesService.showCompilerContent(project, myContentId)) {
                 final ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(ToolWindowId.MESSAGES_WINDOW);
                 if (tw != null) {
                     tw.activate(null, false);

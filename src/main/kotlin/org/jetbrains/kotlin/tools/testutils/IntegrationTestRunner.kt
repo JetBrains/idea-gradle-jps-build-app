@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.tools.testutils
 import com.intellij.ide.CliResult
 import com.intellij.openapi.application.ApplicationStarterBase
 import org.reflections.Reflections
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 import kotlin.system.exitProcess
 
@@ -66,7 +67,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
             } finally {
                 suite.tearDown()
             }
-            CliResult.OK_FUTURE
+            CompletableFuture.completedFuture(CliResult.OK);
         } catch (_: IllegalUserArgumentException) {
             CliResult.error(2, "Invalid command line arguments")
         } catch (e: Exception) {
