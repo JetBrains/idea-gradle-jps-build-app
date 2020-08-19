@@ -21,6 +21,7 @@ import java.util.zip.ZipOutputStream
 class CompilationOutputsUploader(private val remoteCacheUrl: String, private val projectPath: String) {
     private val projectFileStorage = ProjectFileStorage(projectPath)
     private val kotlinRepoUrl = "git@github.com:JetBrains/kotlin.git"
+    private val commitHistoryJsonFileName = "commit_history.json"
 
     fun upload() {
         val uploader = JpsCompilationPartsUploader(remoteCacheUrl)
@@ -96,53 +97,21 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
     }
 
     private fun updateCommitHistory(uploader: JpsCompilationPartsUploader, commitHash: String) {
-        if (uploader.isExist("commit_history.json")) {
-            val json = uploader.getAsString("commit_history.json")
+        if (uploader.isExist(commitHistoryJsonFileName)) {
+            val json = uploader.getAsString(commitHistoryJsonFileName)
             val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             val commitHistory = objectMapper.readValue(json, object : TypeReference<MutableMap<String?, Set<String?>?>?>() {})
             commitHistory?.set(kotlinRepoUrl, commitHistory[kotlinRepoUrl]?.union(listOf(commitHash)))
-            val commitHistoryLocalFile = File(projectPath, "commit_history.json")
+            val commitHistoryLocalFile = File(projectPath, commitHistoryJsonFileName)
             commitHistoryLocalFile.writeText(Gson().toJson(commitHistory))
-            uploader.upload("commit_history.json", commitHistoryLocalFile)
+            uploader.upload(commitHistoryJsonFileName, commitHistoryLocalFile)
+        } else {
+            val commitHistory = mutableMapOf<String?, Set<String?>?>()
+            commitHistory[kotlinRepoUrl] = setOf(commitHash)
+            val commitHistoryLocalFile = File(projectPath, commitHistoryJsonFileName)
+            commitHistoryLocalFile.writeText(Gson().toJson(commitHistory))
+            uploader.upload(commitHistoryJsonFileName, commitHistoryLocalFile)
         }
-        //TODO else
-    //        else {
-    //            new CommitsHistory([:])
-    //        }
-    //        uploader.upload("commit_history.json", writeCommitHistory(commitsHistory))
-    //
-    //        Gson().fromJson(json, JSON_TYPE) as Map<String, Set<String>>
-    //        val remotePerCommitHash: Map<String, String> = HashMap()
-    //        remotePerCommitHash["asd"] = commitHash
-    //        if (remotePerCommitHash.size() == 1) return
-    //        val commitHistory  = HashMap<String, List<String>>()
-    //        if (uploader.isExist(commitHistoryFile)) {
-    //            val content = uploader.getAsString(commitHistoryFile)
-    //            if (!content.isEmpty()) {
-    //                val type: Type = TypeToken<Map<String, List<String>>>(){}.getType();
-    //                commitHistory = Gson().fromJson(content, type) as Map<String, List<String>>
-    //            }
-    //        }
-    //
-    //        remotePerCommitHash.each { key, value ->
-    //            def listOfCommits = commitHistory.get(key)
-    //            if (listOfCommits == null) {
-    //                def newList = new ArrayList()
-    //                newList.add(value)
-    //                commitHistory.put(key, newList)
-    //            }
-    //            else {
-    //                listOfCommits.add(value)
-    //            }
-    //        }
-    //
-    //        // Upload and publish file with commits history
-    //        val jsonAsString = Gson().toJson(commitHistory)
-    //        val file = File("$agentPersistentStorage/$commitHistoryFile")
-    //        file.write(jsonAsString)
-    //        //messages.artifactBuilt(file.absolutePath)
-    //        uploader.upload(commitHistoryFile, file)
-    //        FileUtil.delete(file)
     }
 
     private fun getCommitHash(): String? {
