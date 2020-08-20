@@ -35,6 +35,7 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
             val commitHash = getCommitHash() ?: throw Exception("There is no file with git last commit hash")
 
             executor.submit {
+                printMessage("Upload jps caches")
                 // Upload jps caches
                 var sourcePath = "caches/$commitHash"
                 if (uploader.isExist(sourcePath)) return@submit
@@ -42,19 +43,23 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
                 zipBinaryData(zipFile, projectFileStorage.getCompileServerFolder())
                 uploader.upload(sourcePath, zipFile)
                 FileUtil.delete(zipFile)
+                printMessage("Caches uploaded")
 
                 // Upload compilation metadata
+                printMessage("Upload compilation metadata")
                 sourcePath = "metadata/$commitHash"
                 if (uploader.isExist(sourcePath)) return@submit
                 uploader.upload(sourcePath, projectFileStorage.getTargetSourcesState())
+                printMessage("Metadata uploaded")
                 return@submit
             }
 
-            val targetSourcesStateFile = projectFileStorage.getTargetSourcesState()
-
-            val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            val targetSourcesState = objectMapper.readValue(targetSourcesStateFile.readText(), object : TypeReference<Map<String, Map<String, Map<String, String>>>>() {})
-            uploadCompilationOutputs(targetSourcesState, uploader, executor)
+//            val targetSourcesStateFile = projectFileStorage.getTargetSourcesState()
+//
+//            val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+//            val targetSourcesState = objectMapper.readValue(targetSourcesStateFile.readText(), object : TypeReference<Map<String, Map<String, Map<String, String>>>>() {})
+            uploadCompilationOutputs(uploader, executor)
+            uploadDist(uploader, executor)
 
             executor.waitForAllComplete(/*messages*/)
             //executor.reportErrors(messages)
@@ -70,7 +75,37 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
         }
     }
 
-    private fun uploadCompilationOutputs(currentSourcesState: Map<String, Map<String, Map<String, String>>>,
+    private fun uploadDist(uploader: JpsCompilationPartsUploader,
+                           executor: NamedThreadPoolExecutor) {
+        executor.submit {
+            printMessage("Uploading Dist...")
+            val sourcePath = "dist/${getCommitHash()}"
+            if (uploader.isExist(sourcePath)) return@submit
+            val outputFolder = File(projectPath, "dist")
+            val zipFile = File(projectPath, "distZipped")
+            zipBinaryData(zipFile, outputFolder)
+            uploader.upload(sourcePath, zipFile)
+            FileUtil.delete(zipFile)
+            printMessage("Dist uploaded")
+        }
+    }
+
+    private fun uploadCompilationOutputs(uploader: JpsCompilationPartsUploader,
+                                         executor: NamedThreadPoolExecutor) {
+        executor.submit {
+            printMessage("Compilation outputs uploading")
+            val sourcePath = "out/${getCommitHash()}"
+            if (uploader.isExist(sourcePath)) return@submit
+            val outputFolder = File(projectPath, "out")
+            val zipFile = File(projectPath, "outZipped")
+            zipBinaryData(zipFile, outputFolder)
+            uploader.upload(sourcePath, zipFile)
+            FileUtil.delete(zipFile)
+            printMessage("Compilation outputs uploaded")
+        }
+    }
+
+    private fun uploadCompilationOutputsDeprecated(currentSourcesState: Map<String, Map<String, Map<String, String>>>,
                                          uploader: JpsCompilationPartsUploader,
                                          executor: NamedThreadPoolExecutor) {
         SourcesStateProcessor(currentSourcesState, projectPath).getAllCompilationOutputs().forEach {
@@ -91,9 +126,13 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
     }
 
     private fun zipBinaryData(zipFile: File, dir: File) {
-        val zos = ZipOutputStream(FileOutputStream(zipFile))
-        ZipUtil.addDirToZipRecursively(zos, null, dir, "", null, null)
-        zos.close()
+        try {
+            val zos = ZipOutputStream(FileOutputStream(zipFile))
+            ZipUtil.addDirToZipRecursively(zos, null, dir, "", null, null)
+            zos.close()
+        } catch (e:Exception){
+            println(e.message)
+        }
     }
 
     private fun updateCommitHistory(uploader: JpsCompilationPartsUploader, commitHash: String) {
