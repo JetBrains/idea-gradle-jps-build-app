@@ -32,8 +32,8 @@ class JpsImportAndBuild : ImportAndSave() {
 
         importProject(projectPath, jdkPath, false)?.let {
             //setDelegationMode(projectPath, it, true)
-            buildProject(it)
-            uploadCaches(it)
+            //buildProject(it)
+            //uploadCaches(it)
         }
     }
 
