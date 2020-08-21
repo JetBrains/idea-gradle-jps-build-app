@@ -6,9 +6,7 @@ import com.intellij.util.SystemProperties
 import com.intellij.util.io.ZipUtil
 import org.jetbrains.jps.cmdline.LogSetup
 import org.jetbrains.kotlin.tools.projectWizard.core.parseAs
-import org.jetbrains.kotlin.tools.testutils.buildProject
-import org.jetbrains.kotlin.tools.testutils.importProject
-import org.jetbrains.kotlin.tools.testutils.uploadCaches
+import org.jetbrains.kotlin.tools.testutils.*
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -32,8 +30,10 @@ class JpsImportAndBuild : ImportAndSave() {
 
         importProject(projectPath, jdkPath, false)?.let {
             //setDelegationMode(projectPath, it, true)
-            //buildProject(it)
-            //uploadCaches(it)
+            changeIdeaVersionBuild()
+            buildProject(it)
+            uploadCaches(it)
+            revertIdeaVersionBuildChanges()
         }
     }
 
