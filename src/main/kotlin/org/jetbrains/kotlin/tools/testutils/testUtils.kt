@@ -192,7 +192,8 @@ fun changeIdeaVersionBuild() {
     if(!newIdeaSources.exists()) throw Exception("New idea sources are unavailable\n" +
             "Check https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/ideaIC/ideaIC-202.6397.94.zip\n" +
             "Or TC configuration (step 4")
-    FileUtil.moveDirWithContent(newIdeaSources, ideaSourcesFolder)
+    val ideaTargetFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6/ideaIC-202.6397.94")
+    FileUtil.moveDirWithContent(newIdeaSources, ideaTargetFolder)
     printMessage("=====================")
 
     root.listFiles()?.map { f -> printMessage(f.absolutePath) }
