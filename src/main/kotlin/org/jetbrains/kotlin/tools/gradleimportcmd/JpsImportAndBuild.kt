@@ -34,6 +34,8 @@ class JpsImportAndBuild : ImportAndSave() {
             try {
                 buildProject(it)
                 uploadCaches(it)
+            } catch(e: Exception) {
+                e.message?.let { it1 -> printMessage(it1) }
             } finally {
                 revertIdeaVersionBuildChanges()
             }

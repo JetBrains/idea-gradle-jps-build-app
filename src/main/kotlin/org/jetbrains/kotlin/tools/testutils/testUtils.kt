@@ -14,12 +14,10 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
-import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
-import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
@@ -30,7 +28,6 @@ import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
-import org.jetbrains.jps.api.GlobalOptions
 import org.jetbrains.kotlin.tools.cachesuploader.CompilationOutputsUploader
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
 import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
@@ -198,13 +195,25 @@ fun changeIdeaVersionBuild() {
 
     newIdeaSources.listFiles()?.map { f -> printMessage(f.absolutePath) }
     printMessage("<<<<<<<=====================>>>>>>>")
+    val security = System.getSecurityManager()
+    if (security != null) {
+        printMessage("check")
+        try {
 
-    printMessage(FileUtil.moveDirWithContent(newIdeaSources, ideaTargetFolder).toString())
+            security.checkWrite(newIdeaSources.path)
+            security.checkWrite(ideaTargetFolder.path)
+        }catch (e:Exception){
+            e.message?.let{it -> printMessage(it)}
+        }
+    }
+    if (ideaTargetFolder == null) {
+        throw NullPointerException()
+    }
+
+    //printMessage(FileUtil.moveDirWithContent(newIdeaSources, ideaTargetFolder).toString())
 
     root.listFiles()?.map { f -> printMessage(f.absolutePath) }
     printMessage("=====================")
-
-    root.listFiles()?.map { f -> printMessage(f.absolutePath) }
 }
 
 fun revertIdeaVersionBuildChanges() {
