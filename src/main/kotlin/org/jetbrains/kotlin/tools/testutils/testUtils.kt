@@ -196,7 +196,7 @@ fun changeIdeaVersionBuild() {
     printMessage(ideaTargetFolder.exists().toString())
     printMessage("<<<<<<<=====================>>>>>>>")
 
-    ideaTargetFolder.listFiles()?.map { f -> printMessage(f.absolutePath) }
+    newIdeaSources.listFiles()?.map { f -> printMessage(f.absolutePath) }
     printMessage("<<<<<<<=====================>>>>>>>")
 
     printMessage(FileUtil.moveDirWithContent(newIdeaSources, ideaTargetFolder).toString())
