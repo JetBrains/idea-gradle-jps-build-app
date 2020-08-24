@@ -31,9 +31,12 @@ class JpsImportAndBuild : ImportAndSave() {
         importProject(projectPath, jdkPath, false)?.let {
             //setDelegationMode(projectPath, it, true)
             changeIdeaVersionBuild()
-            buildProject(it)
-            uploadCaches(it)
-            revertIdeaVersionBuildChanges()
+            try {
+                buildProject(it)
+                uploadCaches(it)
+            } finally {
+                revertIdeaVersionBuildChanges()
+            }
         }
     }
 
