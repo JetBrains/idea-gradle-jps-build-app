@@ -54,20 +54,10 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
                 return@submit
             }
 
-//            val targetSourcesStateFile = projectFileStorage.getTargetSourcesState()
-//
-//                // Upload compilation metadata
-//                printMessage("Upload compilation metadata")
-//                sourcePath = "metadata/$commitHash"
-//                if (uploader.isExist(sourcePath)) return@submit
-//                uploader.upload(sourcePath, projectFileStorage.getTargetSourcesState())
-//                printMessage("Metadata uploaded")
-//                return@submit
-//            }
-
             uploadCompilationOutputs(uploader, executor)
             uploadDist(uploader, executor)
             uploadBuildSrc(uploader, executor)
+
             executor.waitForAllComplete(/*messages*/)
 
             //executor.reportErrors(messages)
