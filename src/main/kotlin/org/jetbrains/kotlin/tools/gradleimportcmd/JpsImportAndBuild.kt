@@ -37,7 +37,7 @@ class JpsImportAndBuild : ImportAndSave() {
             } catch(e: Exception) {
                 e.message?.let { it1 -> printMessage(it1) }
             } finally {
-                //revertIdeaVersionBuildChanges()
+                revertIdeaVersionBuildChanges()
             }
         }
     }

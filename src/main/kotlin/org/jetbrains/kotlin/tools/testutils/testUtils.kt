@@ -202,12 +202,9 @@ fun changeIdeaVersionBuild() {
 }
 
 fun revertIdeaVersionBuildChanges() {
-    printMessage("!!!!!!!!!REVERT!!!!!!!!!!!!!!")
-    val ideaNewSourcesFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6/ideaIC-202.6397.94")
-    FileUtil.delete(ideaNewSourcesFolder)
-    val ideaOldSourcesFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6/old")
-
-    FileUtil.rename(ideaOldSourcesFolder, "ideaIC-202.6397.94")
+    printMessage("Remove custom idea sources")
+    val ideaNewSourcesFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6")
+    if(ideaNewSourcesFolder.exists()) FileUtil.delete(ideaNewSourcesFolder)
 }
 
 fun buildProject(project: Project?): Boolean {
@@ -274,6 +271,8 @@ fun buildProject(project: Project?): Boolean {
             val newCacheFolder = File(project.basePath!! + "/compile-server")
             FileUtil.createDirectory(newCacheFolder)
             FileUtil.copyDir(cachesFolder, newCacheFolder)
+            val sdsd = File("sdf")
+
         }
 
         if (errorsCount > 0 || abortedStatus) {
