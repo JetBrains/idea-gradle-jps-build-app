@@ -179,7 +179,7 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
 fun changeIdeaVersionBuild() {
     printMessage("=====================")
     val versionFile = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6/ideaIC-202.6397.94/build.txt")
-    versionFile.forEachLine(Charsets.UTF_16) { printMessage(it) }
+    versionFile.forEachLine(Charsets.UTF_8) { printMessage(it) }
     return
     val root = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6/")
 
