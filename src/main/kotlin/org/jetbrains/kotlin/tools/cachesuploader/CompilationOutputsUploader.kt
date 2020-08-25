@@ -56,12 +56,20 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
 
 //            val targetSourcesStateFile = projectFileStorage.getTargetSourcesState()
 //
-//            val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-//            val targetSourcesState = objectMapper.readValue(targetSourcesStateFile.readText(), object : TypeReference<Map<String, Map<String, Map<String, String>>>>() {})
+//                // Upload compilation metadata
+//                printMessage("Upload compilation metadata")
+//                sourcePath = "metadata/$commitHash"
+//                if (uploader.isExist(sourcePath)) return@submit
+//                uploader.upload(sourcePath, projectFileStorage.getTargetSourcesState())
+//                printMessage("Metadata uploaded")
+//                return@submit
+//            }
+
             uploadCompilationOutputs(uploader, executor)
             uploadDist(uploader, executor)
-
+            uploadBuildSrc(uploader, executor)
             executor.waitForAllComplete(/*messages*/)
+
             //executor.reportErrors(messages)
             //messages.reportStatisticValue("Compilation upload time, ms", String.valueOf(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)))
 
@@ -83,6 +91,21 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, private val
             if (uploader.isExist(sourcePath)) return@submit
             val outputFolder = File(projectPath, "dist")
             val zipFile = File(projectPath, "distZipped")
+            zipBinaryData(zipFile, outputFolder)
+            uploader.upload(sourcePath, zipFile)
+            FileUtil.delete(zipFile)
+            printMessage("Dist uploaded")
+        }
+    }
+
+    private fun uploadBuildSrc(uploader: JpsCompilationPartsUploader,
+                           executor: NamedThreadPoolExecutor) {
+        executor.submit {
+            printMessage("Uploading buildSrc...")
+            val sourcePath = "buildSrc/${getCommitHash()}"
+            if (uploader.isExist(sourcePath)) return@submit
+            val outputFolder = File(projectPath, "buildSrc/build/classes/java")
+            val zipFile = File(projectPath, "buildSrcZipped")
             zipBinaryData(zipFile, outputFolder)
             uploader.upload(sourcePath, zipFile)
             FileUtil.delete(zipFile)
