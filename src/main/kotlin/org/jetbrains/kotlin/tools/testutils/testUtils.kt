@@ -3,6 +3,7 @@ package org.jetbrains.kotlin.tools.testutils
 import com.intellij.compiler.CompilerConfigurationImpl
 import com.intellij.compiler.CompilerWorkspaceConfiguration
 import com.intellij.compiler.impl.InternalCompileDriver
+import com.intellij.compiler.server.BuildManager
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
@@ -13,12 +14,10 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
-import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
-import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
@@ -26,13 +25,19 @@ import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
+import org.jetbrains.jps.cmdline.LogSetup
+import org.jetbrains.kotlin.tools.cachesuploader.CompilationOutputsUploader
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
+import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
+import java.io.BufferedOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.lang.reflect.Proxy
@@ -124,15 +129,9 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
             finishOperation(OperationType.TEST, "Import project", "Filed to import project: $errorMessage. Details: $errorDetails")
         }
     }
-    ExternalSystemUtil.refreshProject(
-            project,
-            GradleConstants.SYSTEM_ID,
-            path,
-            refreshCallback,
-            false,
-            ProgressExecutionMode.MODAL_SYNC,
-            true
-    )
+
+    linkAndRefreshGradleProject(path, project)
+
     reportStatistics("used_memory_after_import$metricsSuffixName", getUsedMemory().toString())
     reportStatistics("total_memory_after_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
     System.gc()
@@ -165,6 +164,24 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     linkedSettings.filterIsInstance<GradleProjectSettings>().forEach { systemSettings.unlinkExternalProject(it.externalProjectPath) }
 
     systemSettings.linkProject(projectSettings)
+}
+
+fun revertIdeaVersionBuildChanges() {
+    printMessage("Remove custom idea sources")
+    var ideaNewSourcesFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6")
+    if(!ideaNewSourcesFolder.exists()) ideaNewSourcesFolder = File("Z:\\gradle\\caches\\modules-2\\files-2.1\\com.jetbrains.intellij.idea\\ideaIC\\202.6397.94\\4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6")
+    if(ideaNewSourcesFolder.exists()) FileUtil.delete(ideaNewSourcesFolder)
+}
+
+fun enableJpsLogging() {
+    val logDirectory = BuildManager.getBuildLogDirectory()
+    FileUtil.delete(logDirectory)
+    FileUtil.createDirectory(logDirectory)
+    val properties = Properties()
+    LogSetup.readDefaultLogConfig().use { config -> properties.load(config) }
+    properties.setProperty("log4j.rootLogger", "debug, file")
+    val logFile = File(logDirectory, LogSetup.LOG_CONFIG_FILE_NAME)
+    BufferedOutputStream(FileOutputStream(logFile)).use { output -> properties.store(output, null) }
 }
 
 fun buildProject(project: Project?): Boolean {
@@ -206,6 +223,10 @@ fun buildProject(project: Project?): Boolean {
             }
         }
 
+        printMessage("Enable portable build caches for idea 202")
+        BuildManager.getInstance().isGeneratePortableCachesEnabled = true
+        enableJpsLogging()
+
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
 
@@ -226,6 +247,11 @@ fun buildProject(project: Project?): Boolean {
         }
     }
     return true
+}
+
+fun uploadCaches(project: Project?) {
+    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/"
+    CompilationOutputsUploader(remoteCacheUrl, project).upload()
 }
 
 private fun testExternalSubsystemForProxyMemoryLeak(externalProject: DataNode<ProjectData>) {
