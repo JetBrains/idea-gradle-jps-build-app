@@ -79,7 +79,7 @@ fun reportOperationError(name: String, failureMessage: String) {
 fun reportStatistics(key: String, value: String) {
     val tcMessage = """
         ##teamcity[buildStatisticValue key='${escapeTcCharacters(key)}' value='${escapeTcCharacters(value)}']
-        ##teamcity[setParameter key='env.br.${escapeTcCharacters(key)}' value='${escapeTcCharacters(value)}']
+        ##teamcity[setParameter name='env.br.${escapeTcCharacters(key)}' value='${escapeTcCharacters(value)}']
     """.trimIndent()
     printMessage("Reported statistics $key=$value", tcMessage)
 }
