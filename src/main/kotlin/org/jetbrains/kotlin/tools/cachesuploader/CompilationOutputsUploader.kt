@@ -149,15 +149,7 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, project: Pr
         }
     }
 
-    private fun getCommitHash(): String? {
-        File(projectPath, "git.branch").also {
-            return if(it.exists()) {
-                it.readText()
-            } else {
-                null
-            }
-        }
-    }
+    private fun getCommitHash(): String? = System.getenv("build_vcs_number_kotlin")
 
     class JpsCompilationPartsUploader(serverUrl: String): CompilationPartsUploader(serverUrl) {
         fun isExist(path: String): Boolean {
