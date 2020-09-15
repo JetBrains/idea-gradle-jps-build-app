@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.tools.testutils.MessageStatus
 import org.jetbrains.kotlin.tools.testutils.printMessage
 import java.io.File
 import java.io.FileOutputStream
+import java.util.stream.Collectors
 import java.util.zip.ZipOutputStream
 
 class CompilationOutputsUploader(private val remoteCacheUrl: String, project: Project?) {
@@ -136,7 +137,16 @@ class CompilationOutputsUploader(private val remoteCacheUrl: String, project: Pr
             val json = uploader.getAsString(commitHistoryJsonFileName)
             val objectMapper = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             val commitHistory = objectMapper.readValue(json, object : TypeReference<MutableMap<String?, Set<String?>?>?>() {})
-            commitHistory?.set(kotlinRepoUrl, commitHistory[kotlinRepoUrl]?.union(listOf(commitHash)))
+
+            //clean up commit history
+            val newHistory = commitHistory?.get(kotlinRepoUrl)?.stream()?.filter {
+                val isCachesExists = uploader.isExist("caches/$it")
+                val isOutExists = uploader.isExist("out/$it")
+                if(!isCachesExists || !isOutExists) return@filter false
+                return@filter true
+            }?.collect(Collectors.toSet<String>())
+            commitHistory?.set(kotlinRepoUrl, newHistory?.union(listOf(commitHash)))
+
             val commitHistoryLocalFile = File(projectPath, commitHistoryJsonFileName)
             commitHistoryLocalFile.writeText(Gson().toJson(commitHistory))
             uploader.upload(commitHistoryJsonFileName, commitHistoryLocalFile)
