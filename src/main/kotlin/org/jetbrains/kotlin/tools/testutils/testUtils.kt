@@ -98,6 +98,9 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
     startOperation(OperationType.TEST, "Import project")
     reportStatistics("used_memory_before_import$metricsSuffixName", getUsedMemory().toString())
     reportStatistics("total_memory_before_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
+    System.gc()
+    reportStatistics("used_memory_before_import_gc$metricsSuffixName", getUsedMemory().toString())
+    reportStatistics("total_memory_before_import_gc$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
 
     val refreshCallback = object : ExternalProjectRefreshCallback {
         override fun onSuccess(externalProject: DataNode<ProjectData>?) {
