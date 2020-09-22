@@ -76,7 +76,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         }
     }
 
-    private fun subArgs(args: List<out String>): List<String> = if (args.size == 2) emptyList<String>() else args.toList().subList(2, args.size - 1)
+    private fun subArgs(args: List<out String>): List<String> = if (args.size == 2) emptyList() else args.toList().subList(2, args.size)
 
 }
 

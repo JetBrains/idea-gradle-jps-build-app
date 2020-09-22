@@ -73,7 +73,12 @@ tasks.getByName('runIde') {
     def absoluteWorkingDir = new File(workingDir).getCanonicalFile().getAbsolutePath().toString()
     println("Executing test [$testName] in folder [$absoluteWorkingDir]")
     systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_18')]
-    args = ['runIntegrationTest', testName]
+    if (project.hasProperty('metricsSuffix') && testName == 'MeasureModelBuildersStatistics') {
+        println("Metrics suffix [$metricsSuffix]")
+        args = ['runIntegrationTest', testName, metricsSuffix]
+    } else {
+        args = ['runIntegrationTest', testName]
+    }
 
     maxHeapSize = heapSize
 

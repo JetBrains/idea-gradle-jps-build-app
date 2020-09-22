@@ -9,7 +9,8 @@ open class MeasureModelBuildersStatistics : ImportAndSave() {
 
     override fun run(args: List<String>, workingDir: String?) {
         enableModelBuilderStatistics(projectPath)
-        importProject(projectPath, jdkPath, false)
+        val metricSuffix = if (args.isNotEmpty()) args[0] else ""
+        importProject(projectPath, jdkPath, false, metricSuffix)
         reportModelBuildersOverhead()
     }
 }
