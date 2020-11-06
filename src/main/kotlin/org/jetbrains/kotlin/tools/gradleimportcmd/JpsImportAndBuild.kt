@@ -11,8 +11,6 @@ class JpsImportAndBuild : ImportAndSave() {
         importProject(projectPath, jdkPath, false)?.let {
             if(buildProject(it) && System.getenv("build_vcs_branch_kotlin") == "refs/heads/master") {
                 uploadCaches(it)
-            } else {
-                revertIdeaVersionBuildChanges()
             }
         }
     }

@@ -228,7 +228,8 @@ fun buildProject(project: Project?): Boolean {
         enableJpsLogging()
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
-        CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
+        printMessage("This build is NOT parallel")
+        CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = false
 
         val compileContext = InternalCompileDriver(project).rebuild(callback)
         while (!finishedLautch.await(1, TimeUnit.MINUTES)) {
@@ -250,7 +251,7 @@ fun buildProject(project: Project?): Boolean {
 }
 
 fun uploadCaches(project: Project?) {
-    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/"
+    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/dev/"
     CompilationOutputsUploader(remoteCacheUrl, project).upload()
 }
 
