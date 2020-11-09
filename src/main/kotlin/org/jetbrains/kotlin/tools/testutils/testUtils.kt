@@ -166,13 +166,6 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     systemSettings.linkProject(projectSettings)
 }
 
-fun revertIdeaVersionBuildChanges() {
-    printMessage("Remove custom idea sources")
-    var ideaNewSourcesFolder = File("/mnt/cache/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/202.6397.94/4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6")
-    if(!ideaNewSourcesFolder.exists()) ideaNewSourcesFolder = File("Z:\\gradle\\caches\\modules-2\\files-2.1\\com.jetbrains.intellij.idea\\ideaIC\\202.6397.94\\4fe93bb81525f2fa7a6f0fd7ba41c3b9cce9e8b6")
-    if(ideaNewSourcesFolder.exists()) FileUtil.delete(ideaNewSourcesFolder)
-}
-
 fun enableJpsLogging() {
     val logDirectory = BuildManager.getBuildLogDirectory()
     FileUtil.delete(logDirectory)
@@ -230,6 +223,7 @@ fun buildProject(project: Project?): Boolean {
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
         printMessage("This build is NOT parallel")
         CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = false
+        CompilerWorkspaceConfiguration.getInstance(project).COMPILER_PROCESS_ADDITIONAL_VM_OPTIONS = "-Dkotlin.jps.non.caching.storage=true"
 
         val compileContext = InternalCompileDriver(project).rebuild(callback)
         while (!finishedLautch.await(1, TimeUnit.MINUTES)) {
