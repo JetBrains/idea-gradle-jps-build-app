@@ -14,10 +14,12 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
+import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
 import com.intellij.openapi.externalSystem.service.project.ExternalProjectRefreshCallback
 import com.intellij.openapi.externalSystem.service.project.ProjectDataManager
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
@@ -29,9 +31,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ThreeState
 import org.jetbrains.jps.cmdline.LogSetup
-import org.jetbrains.kotlin.tools.cachesuploader.CompilationOutputsUploader
 import org.jetbrains.kotlin.tools.gradleimportcmd.GradleModelBuilderOverheadContainer
-import org.jetbrains.plugins.gradle.service.project.open.linkAndRefreshGradleProject
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleProjectSettings
 import org.jetbrains.plugins.gradle.util.GradleConstants
@@ -130,7 +130,15 @@ private fun doImportProject(projectPath: String, jdkPath: String, metricsSuffixN
         }
     }
 
-    linkAndRefreshGradleProject(path, project)
+    ExternalSystemUtil.refreshProject(
+            project,
+            GradleConstants.SYSTEM_ID,
+            path,
+            refreshCallback,
+            false,
+            ProgressExecutionMode.MODAL_SYNC,
+            true
+    )
 
     reportStatistics("used_memory_after_import$metricsSuffixName", getUsedMemory().toString())
     reportStatistics("total_memory_after_import$metricsSuffixName", Runtime.getRuntime().totalMemory().toString())
@@ -242,11 +250,6 @@ fun buildProject(project: Project?): Boolean {
         }
     }
     return true
-}
-
-fun uploadCaches(project: Project?) {
-    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/dev/"
-    CompilationOutputsUploader(remoteCacheUrl, project).upload()
 }
 
 private fun testExternalSubsystemForProxyMemoryLeak(externalProject: DataNode<ProjectData>) {
