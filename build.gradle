@@ -39,7 +39,7 @@ dependencies {
 intellij {
     def ideVersion = System.getenv("ide_version")
     if (ideVersion == null) {
-      ideVersion = '202.6397.94'
+      ideVersion = '202.8194.7'
     } else {
       println("Using IDE: $ideVersion")
     }
