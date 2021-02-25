@@ -244,7 +244,7 @@ fun buildProject(project: Project?): Boolean {
 }
 
 fun uploadCaches(project: Project?) {
-    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/"
+    val remoteCacheUrl = "https://temporary-files-cache.labs.jb.gg/cache/jps/kotlin/dev/"
     CompilationOutputsUploader(remoteCacheUrl, project).upload()
 }
 
