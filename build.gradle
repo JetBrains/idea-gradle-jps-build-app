@@ -39,17 +39,17 @@ dependencies {
 intellij {
     def ideVersion = System.getenv("ide_version")
     if (ideVersion == null) {
-      ideVersion = '202.8194.7'
+        ideVersion = '211.7442.40'
     } else {
-      println("Using IDE: $ideVersion")
+        println("Using IDE: $ideVersion")
     }
     version ideVersion
 
     def idePluginsList = System.getenv("ide_plugins")
     if (idePluginsList == null) {
-      idePluginsList = 'java,gradle,org.jetbrains.kotlin:1.3.61-release-IJ2019.3-1'
+        idePluginsList = 'java,gradle,org.jetbrains.kotlin:1.3.61-release-IJ2019.3-1'
     } else {
-      println("Installing the following plugins: $idePluginsList")
+        println("Installing the following plugins: $idePluginsList")
     }
 
     plugins = idePluginsList.split(',')
@@ -68,20 +68,25 @@ tasks.getByName('runIde') {
     }
     def heapSize = System.getenv("idea_heap_size")
     if (heapSize == null) {
-        heapSize = '2G'
+        heapSize = '4G'
     }
     def absoluteWorkingDir = new File(workingDir).getCanonicalFile().getAbsolutePath().toString()
+    def containerDir = new File(absoluteWorkingDir).getParentFile().absolutePath
     println("Executing test [$testName] in folder [$absoluteWorkingDir]")
-    systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_18')]
+    systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_18'), 'idea.project.path': containerDir]
     args = ['runIntegrationTest', testName]
-    
+
+    println("Setting heap size to $heapSize")
     maxHeapSize = heapSize
 
     if ("true" == System.getenv("enable_serial_gc")) {
         jvmArgs = ['-XX:+UseSerialGC', '-XX:MinHeapFreeRatio=1', '-XX:MaxHeapFreeRatio=99']
     }
 
-    jbrVersion = '8u202b1483.24'
+    println("Using jvmArgs=$jvmArgs")
+
+
+    jbrVersion = '11_0_8b944.34'
 }
 
 group 'org.jetbrains'
