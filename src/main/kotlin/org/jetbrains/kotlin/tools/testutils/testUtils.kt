@@ -160,7 +160,6 @@ fun setDelegationMode(path: String, project: Project, delegationMode: Boolean) {
     projectSettings.externalProjectPath = path
     projectSettings.delegatedBuild = delegationMode
     projectSettings.distributionType = DistributionType.DEFAULT_WRAPPED // use default wrapper
-    projectSettings.storeProjectFilesExternally = ThreeState.NO
     projectSettings.withQualifiedModuleNames()
 
     val systemSettings = ExternalSystemApiUtil.getSettings(project, GradleConstants.SYSTEM_ID)

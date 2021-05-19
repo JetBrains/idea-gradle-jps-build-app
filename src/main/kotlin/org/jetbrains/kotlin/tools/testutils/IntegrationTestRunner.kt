@@ -25,7 +25,7 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
         return testSuits.filter { it.javaClass.simpleName == args[1] && it.acceptArguments(subArgs) }
     }
 
-    private fun checkArguments(args: List<String>): Boolean {
+    override fun checkArguments(args: List<String>): Boolean {
         if (args.size < 2) {
             return false
         }

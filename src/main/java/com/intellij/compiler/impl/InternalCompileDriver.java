@@ -347,6 +347,11 @@ public class InternalCompileDriver {
 
                 }
             }
+
+            @Override
+            public @NotNull ProgressIndicator getProgressIndicator() {
+                return compileContext.getProgressIndicator();
+            }
         });
     }
 
