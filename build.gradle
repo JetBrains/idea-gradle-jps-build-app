@@ -1,3 +1,7 @@
+import com.sun.management.OperatingSystemMXBean
+
+import java.lang.management.ManagementFactory
+
 buildscript {
     repositories {
         mavenLocal()
@@ -57,6 +61,37 @@ intellij {
     sandboxDirectory = "$project.rootDir/local"
 }
 
+def thread = new Thread(new Runnable() {
+    @Override
+    void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            def os = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            def memAll = Runtime.getRuntime().totalMemory();
+            def memUsed  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+
+            def swapAll = os.totalSwapSpaceSize.toInteger()
+
+            def swapString = ""
+            if(swapAll == 0) {
+                swapString = "Swap = 0"
+            } else {
+                def swapUsed = swapAll - os.freeSwapSpaceSize
+                swapString = "swap used = ${(swapUsed/swapAll*100).round(2)}%"
+            }
+
+            def systemCpuLoad = os.systemCpuLoad
+
+            println("SystemCpuLoad = ${(systemCpuLoad*100).round(2)}%, mem used = ${(memUsed/memAll*100).round(2)}%, $swapString")
+            Thread.sleep(30 * 1000)
+        }
+    }
+})
+
+tasks.getByName("runIde").doFirst {
+    thread.setDaemon(true)
+    thread.start()
+}
+
 tasks.getByName('runIde') {
     def workingDir = System.getenv("working_dir")
     if (workingDir == null) {
@@ -87,6 +122,10 @@ tasks.getByName('runIde') {
 
 
     jbrVersion = '11_0_8b944.34'
+}
+tasks.getByName("runIde").doLast {
+    println("Thread interruped")
+    thread.interrupt()
 }
 
 group 'org.jetbrains'
