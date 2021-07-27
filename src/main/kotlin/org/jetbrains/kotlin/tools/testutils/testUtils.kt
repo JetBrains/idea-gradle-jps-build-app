@@ -292,12 +292,18 @@ fun buildProject(project: Project?): Boolean {
             }
         }
 
-        printMessage("Enable portable build caches for idea 211")
+        printMessage("Enable portable build caches for idea 213")
         BuildManager.getInstance().isGeneratePortableCachesEnabled = true
         enableJpsLogging()
 
         CompilerConfigurationImpl.getInstance(project).setBuildProcessHeapSize(3500)
-        CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
+        CompilerConfiguration.getInstance(project).setBuildProcessHeapSize(3500)
+
+//        CompilerWorkspaceConfiguration.getInstance(project).PARALLEL_COMPILATION = true
+        CompilerConfiguration.getInstance(project).isParallelCompilationEnabled = false
+
+        CompilerConfiguration.getInstance(project).buildProcessVMOptions =
+            "-Dkotlin.daemon.enabled=false"
         CompilerWorkspaceConfiguration.getInstance(project).COMPILER_PROCESS_ADDITIONAL_VM_OPTIONS =
             "-Dkotlin.daemon.enabled=false"
 
