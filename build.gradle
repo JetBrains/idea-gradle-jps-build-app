@@ -33,7 +33,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.reflections:reflections:0.9.11'
+    implementation 'org.reflections:reflections:0.9.11'
 }
 
 intellij {
@@ -69,11 +69,11 @@ intellij {
     sandboxDirectory = "$project.rootDir/local"
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions.freeCompilerArgs += ["-Xskip-metadata-version-check"]
 }
 
-tasks.named('runIde') {
+tasks.named('runIde').configure {
     def workingDir = System.getenv("working_dir")
     if (workingDir == null) {
         workingDir = "../jps"
@@ -86,7 +86,7 @@ tasks.named('runIde') {
     if (heapSize == null) {
         heapSize = '2G'
     }
-    def absoluteWorkingDir = new File(workingDir).getCanonicalFile().getAbsolutePath().toString()
+    def absoluteWorkingDir = project.file(workingDir).getCanonicalFile().getAbsolutePath().toString()
     println("Executing test [$testName] in folder [$absoluteWorkingDir]")
     systemProperties = ['java.awt.headless': 'true', 'projectPath': absoluteWorkingDir, 'jdkPath': System.getenv('JDK_PATH')]
     if (project.hasProperty('metricsSuffix') && testName == 'MeasureModelBuildersStatistics') {
