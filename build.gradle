@@ -1,28 +1,7 @@
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots/"
-        }
-        maven {
-            url 'http://dl.bintray.com/jetbrains/intellij-plugin-service'
-        }
-        maven {
-            url "https://jetbrains.bintray.com/intellij-third-party-dependencies"
-        }
-    }
-    dependencies {
-        classpath "org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.7.3"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32"
-    }
-}
-
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.32'
+    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+    id 'org.jetbrains.intellij' version '1.3.0'
 }
-
-apply plugin: 'org.jetbrains.intellij'
 
 repositories {
     mavenLocal()
@@ -49,8 +28,8 @@ intellij {
         println("Installing the following plugins: $idePluginsList")
     }
 
-    plugins = idePluginsList.split(',')
-    pluginName 'gradle-integration-testing-plugin'
+    plugins = Arrays.asList(idePluginsList.split(','))
+    pluginName = 'gradle-integration-testing-plugin'
 
     def localIdeaPath = System.getenv("localIdeaPath")
     if (localIdeaPath != null) {
@@ -58,15 +37,15 @@ intellij {
         localPath = localIdeaPath
     } else {
         println("Using IDE: $ideVersion")
-        version ideVersion
+        version = ideVersion
     }
 
     def customIntellijRepo = System.getenv("intellijRepo")
     if (customIntellijRepo != null) {
-        intellijRepo = customIntellijRepo
+        intellijRepository = customIntellijRepo
     }
 
-    sandboxDirectory = "$project.rootDir/local"
+    sandboxDir = "$project.rootDir/local"
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
@@ -101,6 +80,7 @@ tasks.named('runIde').configure {
     if ("true" == System.getenv("enable_serial_gc")) {
         jvmArgs = ['-XX:+UseSerialGC', '-XX:MinHeapFreeRatio=1', '-XX:MaxHeapFreeRatio=99']
     }
+    jvmArgs += ['--add-exports', 'java.base/jdk.internal.vm=ALL-UNNAMED']
 
     jbrVersion = '11_0_2b159'
 }
