@@ -18,7 +18,7 @@ dependencies {
 intellij {
     def ideVersion = System.getenv("ide_version")
     if (ideVersion == null) {
-        ideVersion = 'IC-2021.1'
+        ideVersion = 'IC-2021.2.3'
     }
 
     def idePluginsList = System.getenv("ide_plugins")
