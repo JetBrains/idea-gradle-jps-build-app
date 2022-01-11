@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 import kotlin.system.exitProcess
 
-class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
+class IntegrationTestRunner : ApplicationStarterBase(0) {
     private val testSuits: List<TestSuite>
 
     init {
@@ -15,6 +15,8 @@ class IntegrationTestRunner : ApplicationStarterBase("runIntegrationTest", 0) {
     }
 
     override fun isHeadless(): Boolean = true
+
+    override fun getCommandName() = "runIntegrationTest"
 
     override fun getUsageMessage(): String =
             "Usage: runIntegrationTest <testName> <arguments> where testNAme one of:${System.lineSeparator()}" +
