@@ -82,7 +82,7 @@ tasks.named('runIde').configure {
     }
     jvmArgs += ['--add-exports', 'java.base/jdk.internal.vm=ALL-UNNAMED']
 
-    jbrVersion = '11_0_2b159'
+    jbrVersion = '17.0.3b463.3'
 }
 
 group 'org.jetbrains'
